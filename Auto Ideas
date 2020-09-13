@@ -1,0 +1,9 @@
+/*
+Please put all comments and ideas in these lines in between the symbols, thanks - Caleb H
+
+Ideas:
+- 4 distance reading sensors, two on each side of the robot, one sensor high and one sensor low. 
+If program. If no sensors triggered do A, one sensor (lower one) triggered do B, and all sensors triggered do C
+
+
+*/
