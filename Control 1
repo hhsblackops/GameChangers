@@ -1,0 +1,59 @@
+package org.firstinspires.ftc.teamcode;
+
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.robotcore.util.Range;
+
+@TeleOp(name="Basic: Linear OpMode", group="Linear Opmode")
+public class BlackopsHumanTime extends LinearOpMode {
+
+    // Declare OpMode members.
+    ElapsedTime runtime = new ElapsedTime();
+    DcMotor leftWheel;
+    DcMotor rightWheel;
+    DcMotor backRightWheel;
+    DcMotor backLeftWheel;
+
+    @Override
+    public void runOpMode() {
+        telemetry.addData("Status", "Initialized");
+        telemetry.update();
+
+        leftWheel = hardwareMap.dcMotor.get("left_drive");
+        leftWheel.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+        rightWheel = hardwareMap.dcMotor.get("right_drive");
+        rightWheel.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rightWheel.setDirection(DcMotor.Direction.REVERSE);
+
+        backRightWheel = hardwareMap.dcMotor.get("back_right_drive");
+        backRightWheel.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backRightWheel.setDirection(DcMotor.Direction.REVERSE);
+
+        backLeftWheel = hardwareMap.dcMotor.get("back_left_drive");
+        backLeftWheel.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+        double speedAdjust = 5;
+
+
+
+        // Wait for the game to start (driver presses PLAY)
+        waitForStart();
+        runtime.reset();
+
+        // run until the end of the match (driver presses STOP)
+        while (opModeIsActive()) {
+            leftWheel.setPower((gamepad1.left_stick_y - gamepad1.left_stick_x - gamepad1.right_stick_x)*(-speedAdjust/10));
+            rightWheel.setPower((gamepad1.left_stick_y - gamepad1.left_stick_x + gamepad1.right_stick_x)*(-speedAdjust/10));
+            backLeftWheel.setPower((gamepad1.left_stick_y + gamepad1.left_stick_x - gamepad1.right_stick_x)*(-speedAdjust/10));
+            backRightWheel.setPower((gamepad1.left_stick_y + gamepad1.left_stick_x + gamepad1.right_stick_x)*(-speedAdjust)/10);
+
+
+
+            // Show the elapsed game time and wheel power.
+            telemetry.addData("Status", "Run Time: " + runtime.toString());
+        }
+    }
+}
