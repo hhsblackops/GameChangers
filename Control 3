@@ -1,0 +1,172 @@
+package org.firstinspires.ftc.teamcode;
+
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.Gamepad;
+import com.qualcomm.robotcore.hardware.GyroSensor;
+import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.robotcore.util.Range;
+import com.qualcomm.robotcore.hardware.GyroSensor;
+import com.qualcomm.robotcore.hardware.Servo;
+
+@TeleOp(name="Basic: Linear OpMode", group="Linear Opmode")
+public class BlackopsHumanTime extends LinearOpMode {
+
+    // Declare OpMode members.
+    ElapsedTime runtime = new ElapsedTime();
+    DcMotor leftWheel;
+    DcMotor rightWheel;
+    DcMotor backRightWheel;
+    DcMotor backLeftWheel;
+    //DcMotor intake;
+    GyroSensor gyro;
+    Servo servo0;
+
+    @Override
+    public void runOpMode() {
+        telemetry.addData("Status", "Initialized");
+        telemetry.update();
+
+        leftWheel = hardwareMap.dcMotor.get("left_drive");
+        rightWheel = hardwareMap.dcMotor.get("right_drive");
+        backRightWheel = hardwareMap.dcMotor.get("back_right_drive");
+        backLeftWheel = hardwareMap.dcMotor.get("back_left_drive");
+        //intake = hardwareMap.dcMotor.get("intake");
+        rightWheel.setDirection(DcMotor.Direction.REVERSE);
+        backRightWheel.setDirection(DcMotor.Direction.REVERSE);
+        servo0 = hardwareMap.servo.get("servo_0");
+        servo0.setPosition(0);
+        gyro = hardwareMap.gyroSensor.get("gyro");
+        gyro.calibrate();
+
+        double speedAdjust = 5;
+
+        // Wait for the game to start (driver presses PLAY)
+        waitForStart();
+        runtime.reset();
+
+        // run until the end of the match (driver presses STOP)
+        while (opModeIsActive()) {
+            leftWheel.setPower((gamepad1.left_stick_y - gamepad1.left_stick_x - gamepad1.right_stick_x)*(-speedAdjust/10));
+            rightWheel.setPower((gamepad1.left_stick_y + gamepad1.left_stick_x + gamepad1.right_stick_x)*(-speedAdjust/10));
+            backLeftWheel.setPower((gamepad1.left_stick_y + gamepad1.left_stick_x - gamepad1.right_stick_x)*(-speedAdjust/10));
+            backRightWheel.setPower((gamepad1.left_stick_y - gamepad1.left_stick_x + gamepad1.right_stick_x)*(-speedAdjust)/10);
+
+            if(gamepad1.dpad_left == true){
+                int start = gyro.getHeading();
+                if(start <= 271){
+                    while(gyro.getHeading() != start + 88){
+                        leftWheel.setPower(-.25);
+                        backLeftWheel.setPower(-.25);
+                        rightWheel.setPower(.25);
+                        backRightWheel.setPower(.25);
+                    }
+                }else{
+                    while(gyro.getHeading() != start - 272){
+                        leftWheel.setPower(-.25);
+                        backLeftWheel.setPower(-.25);
+                        rightWheel.setPower(.25);
+                        backRightWheel.setPower(.25);
+                    }
+                }
+                leftWheel.setPower(0);
+                backLeftWheel.setPower(0);
+                rightWheel.setPower(0);
+                backRightWheel.setPower(0);
+            }
+
+            if (gamepad1.dpad_right == true) {
+                int start = gyro.getHeading();
+                if(start >= 88){
+                    while(gyro.getHeading() != start - 88){
+                        leftWheel.setPower(.25);
+                        backLeftWheel.setPower(.25);
+                        rightWheel.setPower(-.25);
+                        backRightWheel.setPower(-.25);
+                    }
+                }else{
+                    while(gyro.getHeading() != start + 272){
+                        leftWheel.setPower(.25);
+                        backLeftWheel.setPower(.25);
+                        rightWheel.setPower(-.25);
+                        backRightWheel.setPower(-.25);
+                    }
+                }
+                leftWheel.setPower(0);
+                backLeftWheel.setPower(0);
+                rightWheel.setPower(0);
+                backRightWheel.setPower(0);
+            }
+            if (gamepad1.dpad_up == true) {
+                int start = gyro.getHeading();
+                if (start >= 180) {
+                    //turn right until gyro = 0
+                    if(start >= 269){
+                        while (gyro.getHeading() != 357) {
+                            leftWheel.setPower(-.25);
+                            backLeftWheel.setPower(-.25);
+                            rightWheel.setPower(.25);
+                            backRightWheel.setPower(.25);
+                        }
+                    }else{
+                        while (gyro.getHeading() != 355){
+                           leftWheel.setPower(-.25);
+                           backLeftWheel.setPower(-.25);
+                           rightWheel.setPower(.25);
+                           backRightWheel.setPower(.25);
+                        }
+                    }
+                } else if (start <= 180 && start != 0){
+                    if(start <= 79){
+                        while (gyro.getHeading() != 3) {
+                            leftWheel.setPower(.25);
+                            backLeftWheel.setPower(.25);
+                            rightWheel.setPower(-.25);
+                            backRightWheel.setPower(-.25);
+                        }
+                    }else{
+                        while (gyro.getHeading() != 5){
+                            leftWheel.setPower(.25);
+                            backLeftWheel.setPower(.25);
+                            rightWheel.setPower(-.25);
+                            backRightWheel.setPower(-.25);
+                        }
+                    }
+                }
+                leftWheel.setPower(0);
+                backLeftWheel.setPower(0);
+                rightWheel.setPower(0);
+                backRightWheel.setPower(0);
+            }
+            if (gamepad1.dpad_down == true){
+                int start = gyro.getHeading();
+                if (start <= 177){
+                    while (gyro.getHeading() != start + 178) {
+                        leftWheel.setPower(-.25);
+                        backLeftWheel.setPower(-.25);
+                        rightWheel.setPower(.25);
+                        backRightWheel.setPower(.25);
+                    }
+                } else{
+                    while (gyro.getHeading() != start - 178) {
+                        leftWheel.setPower(.25);
+                        backLeftWheel.setPower(.25);
+                        rightWheel.setPower(-.25);
+                        backRightWheel.setPower(-.25);
+                    }
+                }
+                leftWheel.setPower(0);
+                backLeftWheel.setPower(0);
+                rightWheel.setPower(0);
+                backRightWheel.setPower(0);
+            }
+            // Show the elapsed game time
+            telemetry.addData("Status", "Run Time: " + runtime.toString());
+            telemetry.addData("Gyro Heading: ", gyro.getHeading());
+            telemetry.update();
+        }
+
+    }
+}
