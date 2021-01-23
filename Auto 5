@@ -1,0 +1,122 @@
+package org.firstinspires.ftc.teamcode;
+
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.hardware.CRServo;
+import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.robotcore.util.Range;
+
+import static com.qualcomm.robotcore.hardware.DcMotor.RunMode.RUN_TO_POSITION;
+import static com.qualcomm.robotcore.hardware.DcMotor.RunMode.STOP_AND_RESET_ENCODER;
+
+@Autonomous(name="test", group="AutoDrive")
+
+public class Test0 extends LinearOpMode {
+
+    // Declare OpMode members.
+    private ElapsedTime runtime = new ElapsedTime();
+    DcMotor motor;
+    DcMotor motor1;
+    DcMotor motor2;
+    DcMotor motor3;
+
+    @Override
+    public void runOpMode() {
+        telemetry.addData("Status", "Initialized");
+        telemetry.update();
+
+        motor = hardwareMap.dcMotor.get("motor");
+        motor1 = hardwareMap.dcMotor.get("motor1");
+        motor2 = hardwareMap.dcMotor.get("motor2");
+        motor3 = hardwareMap.dcMotor.get("motor3");
+
+        waitForStart();
+        while(opModeIsActive()) {
+            motor.setPower(-.2);
+            motor1.setPower(.2);
+            motor2.setPower(.2);
+            motor3.setPower(-.2);
+            sleep(8000);
+            motor.setPower(0);
+            motor1.setPower(0);
+            motor2.setPower(0);
+            motor3.setPower(0);
+            motor.setPower(-.3);
+            motor1.setPower(.3);
+            motor2.setPower(.3);
+            motor3.setPower(-.3);
+            sleep(8000);
+            motor.setPower(0);
+            motor1.setPower(0);
+            motor2.setPower(0);
+            motor3.setPower(0);
+            motor.setPower(-.4);
+            motor1.setPower(.4);
+            motor2.setPower(.4);
+            motor3.setPower(-.4);
+            sleep(8000);
+            motor.setPower(0);
+            motor1.setPower(0);
+            motor2.setPower(0);
+            motor3.setPower(0);
+            motor.setPower(-.5);
+            motor1.setPower(.5);
+            motor2.setPower(.5);
+            motor3.setPower(-.5);
+            sleep(8000);
+            motor.setPower(0);
+            motor1.setPower(0);
+            motor2.setPower(0);
+            motor3.setPower(0);
+            motor.setPower(-.6);
+            motor1.setPower(.6);
+            motor2.setPower(.6);
+            motor3.setPower(-.6);
+            sleep(8000);
+            motor.setPower(0);
+            motor1.setPower(0);
+            motor2.setPower(0);
+            motor3.setPower(0);
+            motor.setPower(-.7);
+            motor1.setPower(.7);
+            motor2.setPower(.7);
+            motor3.setPower(-.7);
+            sleep(8000);
+            motor.setPower(0);
+            motor1.setPower(0);
+            motor2.setPower(0);
+            motor3.setPower(0);
+            motor.setPower(-.8);
+            motor1.setPower(.8);
+            motor2.setPower(.8);
+            motor3.setPower(-.8);
+            sleep(8000);
+            motor.setPower(0);
+            motor1.setPower(0);
+            motor2.setPower(0);
+            motor3.setPower(0);
+            motor.setPower(-.9);
+            motor1.setPower(.9);
+            motor2.setPower(.9);
+            motor3.setPower(-.9);
+            sleep(8000);
+            motor.setPower(0);
+            motor1.setPower(0);
+            motor2.setPower(0);
+            motor3.setPower(0);
+            motor.setPower(-1);
+            motor1.setPower(1);
+            motor2.setPower(1);
+            motor3.setPower(-1);
+            sleep(8000);
+            motor.setPower(0);
+            motor1.setPower(0);
+            motor2.setPower(0);
+            motor3.setPower(0);
+        }
+    }
+}
