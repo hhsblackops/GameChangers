@@ -1,0 +1,53 @@
+package org.firstinspires.ftc.teamcode;
+
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.UltrasonicSensor;
+import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.robotcore.util.Range;
+import com.qualcomm.robotcore.hardware.Servo;
+
+@TeleOp(name="TestDriver", group="Linear Opmode")
+
+public class Test extends LinearOpMode {
+
+    // Declare OpMode members.
+    private ElapsedTime runtime = new ElapsedTime();
+    //DcMotor motor;
+    Servo servo;
+    UltrasonicSensor t;
+    @Override
+    public void runOpMode() {
+        telemetry.addData("Status", "Initialized");
+        telemetry.update();
+
+        //motor  = hardwareMap.dcMotor.get("motor")
+        servo = hardwareMap.servo.get("servo");
+
+        // This is my guess on what the sensor you showed me is
+        t = hardwareMap.ultrasonicSensor.get("t");
+        waitForStart();
+        runtime.reset();
+
+        double servopos = 0;
+        while (opModeIsActive()) {
+            //motor.setPower(gamepad1.left_stick_y);
+
+            servopos = servopos - gamepad1.right_stick_x/300;
+            if(servopos>1){
+                servopos = 1;
+            }
+            if(servopos<0){
+                servopos = 0;
+            }
+            servo.setPosition(servopos);
+
+            // My test on sensing
+            telemetry.addData("UltrasonicLevel", t.getUltrasonicLevel());
+            telemetry.update();
+
+        }
+    }
+}
