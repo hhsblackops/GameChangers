@@ -1,0 +1,314 @@
+package org.firstinspires.ftc.teamcode;
+
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.hardware.CRServo;
+import com.qualcomm.robotcore.hardware.GyroSensor;
+
+@Autonomous(name="BlackOps Autonomous", group="AutoDrive")
+public class BlackOps extends LinearOpMode {
+
+    DcMotor leftWheel;
+    DcMotor rightWheel;
+    DcMotor backRightWheel;
+    DcMotor backLeftWheel;
+    //DcMotor intake;
+    //CRServo servo0;
+    GyroSensor gyro;
+
+
+    @Override
+    public void runOpMode() {
+
+        Init();
+
+        waitForStart();
+
+        while (opModeIsActive()){
+            int heading = gyro.getHeading();
+            int xVal = gyro.rawX();
+            int yVal = gyro.rawY();
+            int zVal = gyro.rawZ();
+
+            telemetry.addData("1. Heading: ", heading);
+            telemetry.addData("2. X: ", xVal);
+            telemetry.addData("2. Y: ", yVal);
+            telemetry.addData("2. Z: ", zVal);
+            telemetry.update();
+
+            striaght(500, .25);
+            striaght(-500, .25);
+
+
+
+            //side(5000, .25);
+           // side(-5000,.25);
+
+            telemetry.addData("ran once", "yes");
+            break;
+        }
+    }
+
+    public  int degreeCalc(int degree){
+        int returnDegree = degree;
+        if(degree < 0){
+            returnDegree += 360;
+        }
+        if(degree >= 360){
+            returnDegree -= 360;
+        }
+        return returnDegree;
+    }
+
+    //Drive stop
+    public void stopDrive(){
+        leftWheel.setPower(0);
+        rightWheel.setPower(0);
+        backLeftWheel.setPower(0);
+        backRightWheel.setPower(0);
+    }
+    //public void servoSet0(){ servo0.setPosition(0); }
+    //public void servoSet1(){ servo0.setPosition(1); }
+    // Initilize
+    public void Init(){
+        leftWheel = hardwareMap.dcMotor.get("left_drive");
+        rightWheel = hardwareMap.dcMotor.get("right_drive");
+        backRightWheel = hardwareMap.dcMotor.get("back_right_drive");
+        backLeftWheel = hardwareMap.dcMotor.get("back_left_drive");
+        //intake = hardwareMap.dcMotor.get("intake");
+        rightWheel.setDirection(DcMotor.Direction.REVERSE);
+        //backRightWheel.setDirection(DcMotor.Direction.REVERSE);
+        //servo0 = hardwareMap.crservo.get("servo_0");
+        gyro = hardwareMap.gyroSensor.get("gyro");
+        gyro.calibrate();
+        leftWheel.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rightWheel.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        backLeftWheel.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        backRightWheel.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+        //opd = hardwareMap.opticalDistanceSensor.get("opd_sensor");
+        //opd.enableLed(true);
+    }
+    public void side( int distance, double pwr) {
+        if (distance < 0) {
+            double adjSpeed = 0.025;
+            double minTurn = 0.007;
+            int targetDegrees = 0;
+            int windowSize = 1;
+            double lw=0;
+            double rw =0;
+            double blw =0;
+            double brw =0;
+            double leftSpeed;
+            double rightSpeed;
+            double backLeftSpeed;
+            double backRightSpeed;
+
+            int target = gyro.getHeading();
+            int start = leftWheel.getCurrentPosition();
+
+            while (leftWheel.getCurrentPosition() < start - distance)
+            {
+                /*
+                if(degreeCalc(gyro.getHeading() - target) > 0 + windowSize && degreeCalc(gyro.getHeading() - target) <= 180){
+                    lw -= gyro.getHeading() * adjSpeed + minTurn;
+                    rw += gyro.getHeading() * adjSpeed+ minTurn;
+                    blw -= gyro.getHeading() * adjSpeed+ minTurn;
+                    brw += gyro.getHeading() * adjSpeed+ minTurn;
+                }
+                if(degreeCalc(gyro.getHeading() - target) <= 359 - windowSize && degreeCalc(gyro.getHeading() - target) > 180){
+                    lw += (360 - gyro.getHeading())  * adjSpeed + minTurn;
+                    rw -= (360 - gyro.getHeading()) * adjSpeed + minTurn;
+                    blw += (360 - gyro.getHeading()) * adjSpeed + minTurn;
+                    brw -= (360 - gyro.getHeading()) * adjSpeed + minTurn;
+                }
+*/telemetry.addData("Left Wheel", leftWheel.getCurrentPosition());
+
+                telemetry.update();
+
+                leftSpeed = pwr + lw;
+                backLeftSpeed = -pwr + blw;
+                rightSpeed = -pwr + rw;
+                backRightSpeed = pwr + brw;
+
+                leftWheel.setPower(leftSpeed);
+                backLeftWheel.setPower(backLeftSpeed);
+                rightWheel.setPower(rightSpeed);
+                backRightWheel.setPower(backRightSpeed);
+
+                telemetry.addData("1. Left Power: ", leftWheel.getPower());
+                telemetry.addData("2. Right Power: ", rightWheel.getPower());
+                telemetry.addData("3. Distance: ", (distance + start) - leftWheel.getCurrentPosition());
+                sleep(1);
+            }
+        }
+        if (distance > 0) {
+            gyro.resetZAxisIntegrator();
+            double adjSpeed = 0.025;
+            double minTurn = 0.007;
+            int windowSize = 1;
+            double lw=0;
+            double rw =0;
+            double blw =0;
+            double brw =0;
+            double leftSpeed;
+            double rightSpeed;
+            double backLeftSpeed;
+            double backRightSpeed;
+
+            int target = gyro.getHeading();
+            int start = leftWheel.getCurrentPosition();
+
+            while (leftWheel.getCurrentPosition() > start + distance) {
+               /* if(degreeCalc(gyro.getHeading() - target) > 0 + windowSize && degreeCalc(gyro.getHeading() - target) <= 180){
+                    lw -= gyro.getHeading() * adjSpeed + minTurn;
+                    rw += gyro.getHeading() * adjSpeed+ minTurn;
+                    blw -= gyro.getHeading() * adjSpeed+ minTurn;
+                    brw += gyro.getHeading() * adjSpeed+ minTurn;
+                }
+                if(degreeCalc(gyro.getHeading() - target) <= 359 - windowSize && degreeCalc(gyro.getHeading() - target) > 180){
+                    lw += (360 - gyro.getHeading())  * adjSpeed + minTurn;
+                    rw -= (360 - gyro.getHeading()) * adjSpeed + minTurn;
+                    blw += (360 - gyro.getHeading()) * adjSpeed + minTurn;
+                    brw -= (360 - gyro.getHeading()) * adjSpeed + minTurn;
+                }
+*/telemetry.addData("Left Wheel", leftWheel.getCurrentPosition());
+
+                telemetry.update();
+
+                leftSpeed = pwr + lw;
+                backLeftSpeed = -pwr + blw;
+                rightSpeed = -pwr + rw;
+                backRightSpeed = pwr + brw;
+
+                leftWheel.setPower(leftSpeed);
+                backLeftWheel.setPower(backLeftSpeed);
+                rightWheel.setPower(rightSpeed);
+                backRightWheel.setPower(backRightSpeed);
+
+                telemetry.addData("1. Left Power: ", leftWheel.getPower());
+                telemetry.addData("2. Right Power: ", rightWheel.getPower());
+                telemetry.addData("3. Distance: ", (distance + start) - leftWheel.getCurrentPosition());
+                sleep(1);
+            }
+        }
+    }
+    public void striaght( int duration, double power)
+        {
+        if(duration > 0){
+            gyro.resetZAxisIntegrator();
+            double adjSpeed = 0.025;
+            double minTurn = 0.007;
+            int windowSize = 1;
+            double lw=0;
+            double rw =0;
+            double blw =0;
+            double brw =0;
+            double leftSpeed;
+            double rightSpeed;
+            double backLeftSpeed;
+            double backRightSpeed;
+
+            int target = gyro.getHeading();
+            int start = leftWheel.getCurrentPosition();
+
+            leftWheel.setTargetPosition(start+duration);
+  /*              if(degreeCalc(gyro.getHeading() - target) > 0 + windowSize && degreeCalc(gyro.getHeading() - target) <= 180){
+                    lw -= gyro.getHeading() * adjSpeed + minTurn;
+                    rw += gyro.getHeading() * adjSpeed+ minTurn;
+                    blw -= gyro.getHeading() * adjSpeed+ minTurn;
+                    brw += gyro.getHeading() * adjSpeed+ minTurn;
+                }
+                if(degreeCalc(gyro.getHeading() - target) <= 359 - windowSize && degreeCalc(gyro.getHeading() - target) > 180){
+                    lw += (360 - gyro.getHeading())  * adjSpeed + minTurn;
+                    rw -= (360 - gyro.getHeading()) * adjSpeed + minTurn;
+                    blw += (360 - gyro.getHeading()) * adjSpeed + minTurn;
+                    brw -= (360 - gyro.getHeading()) * adjSpeed + minTurn;
+                }
+
+*/
+            leftWheel.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                leftSpeed = power + lw;
+                backLeftSpeed = power + blw;
+                rightSpeed = power + rw;
+                backRightSpeed = power + brw;
+
+                leftWheel.setPower(leftSpeed);
+                backLeftWheel.setPower(backLeftSpeed);
+                rightWheel.setPower(rightSpeed);
+                backRightWheel.setPower(backRightSpeed);
+                while(leftWheel.isBusy()){
+
+                }
+            stopDrive();
+
+                telemetry.addData("1. Left Power: ", leftWheel.getPower());
+                telemetry.addData("2. Right Power: ", rightWheel.getPower());
+                telemetry.addData("3. Distance: ", (duration + start) - leftWheel.getCurrentPosition());
+
+        }
+        if(duration < 0){
+            gyro.resetZAxisIntegrator();
+            double adjSpeed = 0.025;
+            double minTurn = 0.007;
+            int windowSize = 1;
+            double lw=0;
+            double rw =0;
+            double blw =0;
+            double brw =0;
+            double leftSpeed = 0;
+            double rightSpeed =0;
+            double backLeftSpeed =0;
+            double backRightSpeed=0;
+
+            int target = gyro.getHeading();
+            int start = leftWheel.getCurrentPosition();
+
+            while (leftWheel.getCurrentPosition() > start - duration) {
+                int heading = gyro.getHeading();
+/*
+                if(degreeCalc(gyro.getHeading() - target) > 0 + windowSize && degreeCalc(gyro.getHeading() - target) <= 180){
+                    lw -= gyro.getHeading() * adjSpeed + minTurn;
+                    rw += gyro.getHeading() * adjSpeed+ minTurn;
+                    blw -= gyro.getHeading() * adjSpeed+ minTurn;
+                    brw += gyro.getHeading() * adjSpeed+ minTurn;
+                }
+                if(degreeCalc(gyro.getHeading() - target) <= 359 - windowSize && degreeCalc(gyro.getHeading() - target) > 180){
+                    lw += (360 - gyro.getHeading())  * adjSpeed + minTurn;
+                    rw -= (360 - gyro.getHeading()) * adjSpeed + minTurn;
+                    blw += (360 - gyro.getHeading()) * adjSpeed + minTurn;
+                    brw -= (360 - gyro.getHeading()) * adjSpeed + minTurn;
+                }*/telemetry.addData("Left Wheel", leftWheel.getCurrentPosition());
+
+                telemetry.update();
+                leftSpeed = -power + lw;
+                backLeftSpeed = -power + blw;
+                rightSpeed = -power + rw;
+                backRightSpeed = -power + brw;
+
+                leftWheel.setPower(leftSpeed);
+                backLeftWheel.setPower(backLeftSpeed);
+                rightWheel.setPower(rightSpeed);
+                backRightWheel.setPower(backRightSpeed);
+
+                telemetry.addData("1. Left Power: ", leftWheel.getPower());
+                telemetry.addData("2. Right Power: ", rightWheel.getPower());
+                telemetry.addData("3. Distance: ", (duration + start) - leftWheel.getCurrentPosition());
+                sleep(1);
+            }
+        }
+
+    }
+}
+
+/*
+NOTES
+Time for one square at 1/2 power = 1150
+Time for two squares at 1/2 power = 2450
+Any 90 degree turn at 1/2 power = 1200 for time
+For side drive at 1/2 power = 1400 for time
+Backward drive one square at 1/2 power = 1025
+servo0.setPosition(0); or servo0.setPosition(1); or anywhere from 0-1
+*/
