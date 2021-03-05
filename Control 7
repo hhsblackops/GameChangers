@@ -1,0 +1,154 @@
+package org.firstinspires.ftc.teamcode.Autonomous;
+
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.hardware.GyroSensor;
+import static com.qualcomm.robotcore.hardware.DcMotor.RunMode.RUN_TO_POSITION;
+
+
+@Autonomous(name="Auto", group="AutoDrive")
+public class AutoBlackOps extends LinearOpMode {
+
+    //Motors
+    DcMotor lw;
+    DcMotor rw;
+    DcMotor blw;
+    DcMotor brw;
+    DcMotor in0;
+    DcMotor in1;
+    DcMotor shoot;
+
+    //Servos
+    Servo flick;
+    Servo wob;
+
+    //Sensors
+    GyroSensor gyro;
+
+
+    @Override
+    public void runOpMode() {
+
+        Init();
+
+        waitForStart();
+
+        straight(3000, 0.5);
+        straight(-3000, 0.5);
+        side(3000, 0.5);
+        side(-3000,.5);
+
+    }
+
+    public  int degreeCalc(int degree){
+        int returnDegree = degree;
+        if(degree < 0){
+            returnDegree += 360;
+        }
+        if(degree >= 360){
+            returnDegree -= 360;
+        }
+        return returnDegree;
+    }
+
+    //Drive stop
+    public void stopDrive(){
+        lw.setPower(0);
+        rw.setPower(0);
+        blw.setPower(0);
+        brw.setPower(0);
+    }
+
+    //public void wobUp(){ wob.setPosition(0); }
+
+    //public void wobDown(){ wob.setPosition(1); }
+
+    // Initilize
+    public void Init(){
+        lw = hardwareMap.dcMotor.get("lw");
+        rw = hardwareMap.dcMotor.get("rw");
+        rw.setDirection(DcMotor.Direction.REVERSE);
+        brw = hardwareMap.dcMotor.get("brw");
+        brw.setDirection(DcMotor.Direction.REVERSE);
+        blw = hardwareMap.dcMotor.get("blw");
+        in0 = hardwareMap.dcMotor.get("ina");
+        in1 = hardwareMap.dcMotor.get("inb");
+        in1.setDirection(DcMotor.Direction.REVERSE);
+        shoot = hardwareMap.dcMotor.get("shoot");
+        flick = hardwareMap.servo.get("flick");
+        flick.setPosition(1);
+        //wob = hardwareMap.dcMotor.get("wob");
+        gyro = hardwareMap.gyroSensor.get("gyro");
+        gyro.calibrate();
+        //opd = hardwareMap.opticalDistanceSensor.get("opd_sensor");
+        //opd.enableLed(true);
+    }
+
+    //Setting Power to the same thing for the motors
+    public void run(double power){
+        lw.setPower(power);
+        rw.setPower(power);
+        blw.setPower(power);
+        brw.setPower(power);
+    }
+
+    //Side to Side movement with power being same
+    public void siderun(double power){
+        lw.setPower(-power);
+        rw.setPower(-power);
+        brw.setPower(power);
+        blw.setPower(-power);
+    }
+
+    //Forward/Backwards Movement
+    private void straight(int tics, double power){
+        int start = lw.getCurrentPosition();
+        lw.setTargetPosition(start + tics);
+        if(tics > 0){
+            run(power);
+            lw.setMode(RUN_TO_POSITION);
+            while (lw.isBusy()){
+                telemetry.addData("Tics", lw.getCurrentPosition());
+                telemetry.update();
+            }
+            stopDrive();
+        }
+        else if (tics < 0){
+            run(-power);
+            lw.setMode(RUN_TO_POSITION);
+            while (lw.isBusy())
+            {
+                telemetry.addData("Tics", lw.getCurrentPosition());
+                telemetry.update();
+            }
+
+            stopDrive();
+        }
+    }
+
+    //Strafing, + = right & - = left
+    private void side(int tics, double power){
+        int start = lw.getCurrentPosition();
+        lw.setTargetPosition(start + tics);
+        if(tics < 0){
+            siderun(-power);
+            lw.setMode(RUN_TO_POSITION);
+            while(lw.isBusy()){
+                telemetry.addData("Tics", lw.getCurrentPosition());
+                telemetry.update();
+            }
+            stopDrive();
+        }
+        if(tics > 0){
+            siderun(power);
+            lw.setMode(RUN_TO_POSITION);
+            while(lw.isBusy()){
+                telemetry.addData("Tics", lw.getCurrentPosition());
+                telemetry.update();
+            }
+            stopDrive();
+        }
+    }
+}
