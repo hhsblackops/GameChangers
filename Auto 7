@@ -1,0 +1,356 @@
+package org.firstinspires.ftc.teamcode;
+
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.Gamepad;
+import com.qualcomm.robotcore.hardware.GyroSensor;
+import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cGyro;
+import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.robotcore.util.Range;
+
+@TeleOp(name="Driver Period", group="Linear Opmode")
+public class BlackopsHumanTime extends LinearOpMode {
+
+    // Declare OpMode members.
+    ElapsedTime runtime = new ElapsedTime();
+    DcMotor leftWheel;
+    DcMotor rightWheel;
+    DcMotor backRightWheel;
+    DcMotor backLeftWheel;
+    DcMotor intake;
+    DcMotor intake2;
+    GyroSensor gyro;
+    Servo servo0;
+    DcMotor shoot;
+    DcMotor shoot1;
+    //DcMotor motorX;
+    //DcMotor motorY;
+
+
+    // Speed
+    double speedAdjust = 7.5;
+
+    // Gyro settings
+    double adjSpeed = 0.025;
+    double minTurn = 0.007;
+    int windowSize = 1;
+    int targetDegree = 0;
+
+
+    // Function to make invalid degrees valid
+    public int degreeCalc(int degree){
+        int returnDegree = degree;
+        if(returnDegree < 0){
+            returnDegree = returnDegree + 360;
+        }
+        if(returnDegree >= 360){
+            returnDegree = returnDegree - 360;
+        }
+        return returnDegree;
+
+    }
+
+
+    @Override
+    public void runOpMode() {
+        telemetry.addData("Status", "Initialized");
+        telemetry.update();
+
+        leftWheel = hardwareMap.dcMotor.get("left_drive");
+        rightWheel = hardwareMap.dcMotor.get("right_drive");
+        backRightWheel = hardwareMap.dcMotor.get("back_right_drive");
+        backLeftWheel = hardwareMap.dcMotor.get("back_left_drive");
+        intake = hardwareMap.dcMotor.get("intake");
+        intake2 = hardwareMap.dcMotor.get("intake2");
+        intake2.setDirection(DcMotor.Direction.REVERSE);
+        rightWheel.setDirection(DcMotor.Direction.REVERSE);
+        backRightWheel.setDirection(DcMotorSimple.Direction.REVERSE);
+        servo0 = hardwareMap.servo.get("servo_0");
+        servo0.setPosition(1);
+        gyro = hardwareMap.gyroSensor.get("gyro");
+        gyro.calibrate();
+        shoot = hardwareMap.dcMotor.get("shoot");
+        shoot1 = hardwareMap.dcMotor.get("shoot1");
+
+        //motorX = hardwareMap.dcMotor.get("X");
+        //motorY = hardwareMap.dcMotor.get("Y");
+        //motorX.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        //motorY.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+
+
+        // Wait for the game to start (driver presses PLAY)
+        waitForStart();
+        runtime.reset();
+
+
+
+        // run until the end of the match (driver presses STOP)
+        while (opModeIsActive()) {
+
+            int heading = gyro.getHeading();
+            int xVal = gyro.rawX();
+            int yVal = gyro.rawY();
+            int zVal = gyro.rawZ();
+
+            telemetry.addData("1. Heading: ", heading);
+            telemetry.addData("2. X: ", xVal);
+            telemetry.addData("2. Y: ", yVal);
+            telemetry.addData("2. Z: ", zVal);
+
+            telemetry.addData("rightControlX", gamepad1.right_stick_x);
+            telemetry.addData("rightControlY", gamepad1.right_stick_y);
+
+            //telemetry.addData("testCalc", degreeCalc(-5));
+            //telemetry.addData("targetDegree", degree);
+
+
+            // Inputs to the motors
+            double lw = (-gamepad1.left_stick_y + gamepad1.left_stick_x) * (-speedAdjust / 10);
+            double rw = (-gamepad1.left_stick_y - gamepad1.left_stick_x) * (-speedAdjust / 10);
+            double blw = (-gamepad1.left_stick_y - gamepad1.left_stick_x) * (-speedAdjust / 10);
+            double brw = (-gamepad1.left_stick_y + gamepad1.left_stick_x) * (-speedAdjust / 10);
+
+            // targetDegree is currently affected by the right stick and it changes the degrees the robot goes towards
+/*
+
+            // This does not work right now
+            if ((gyro.getHeading() >  degree + windowSize && gyro.getHeading() <= degreeCalc(180)||(gyro.getHeading() > degreeCalc(windowSize)))) {
+                lw -= Math.abs(degree - gyro.getHeading()) * adjSpeed + minTurn;
+                rw += Math.abs(degree - gyro.getHeading()) * adjSpeed + minTurn;
+                blw -= Math.abs(degree - gyro.getHeading()) * adjSpeed + minTurn;
+                brw += Math.abs(degree - gyro.getHeading()) * adjSpeed + minTurn;
+            }
+
+            if ((gyro.getHeading() > degreeCalc(180) && gyro.getHeading() < degree-windowSize) || (gyro.getHeading() < degreeCalc(-windowSize))) {
+                lw += degreeCalc(degree + 360 - gyro.getHeading()) * adjSpeed + minTurn;
+                rw -= degreeCalc(degree + 360 - gyro.getHeading()) * adjSpeed + minTurn;
+                blw += degreeCalc(degree + 360 - gyro.getHeading()) * adjSpeed + minTurn;
+                brw -= degreeCalc(degree + 360 - gyro.getHeading()) * adjSpeed + minTurn;
+            }
+
+ */     if(degreeCalc(gyro.getHeading() - targetDegree) > 0 + windowSize && degreeCalc(gyro.getHeading() - targetDegree) <= 180){
+                lw -= degreeCalc(gyro.getHeading() - targetDegree) * adjSpeed + minTurn;
+                rw += degreeCalc(gyro.getHeading() - targetDegree) * adjSpeed+ minTurn;
+                blw -= degreeCalc(gyro.getHeading() - targetDegree) * adjSpeed+ minTurn;
+                brw += degreeCalc(gyro.getHeading() - targetDegree) * adjSpeed+ minTurn;
+            }
+            if(degreeCalc(gyro.getHeading() - targetDegree) < 360 - windowSize && degreeCalc(gyro.getHeading() - targetDegree) > 180){
+                lw += (360 - degreeCalc(gyro.getHeading() - targetDegree)) * adjSpeed + minTurn;
+                rw -= (360 - degreeCalc(gyro.getHeading() - targetDegree)) *  adjSpeed + minTurn;
+                blw += (360 - degreeCalc(gyro.getHeading() - targetDegree)) *  adjSpeed + minTurn;
+                brw -= (360 - degreeCalc(gyro.getHeading() - targetDegree)) *  adjSpeed + minTurn;
+            }
+
+
+
+           double intakeSpeed = .75;
+
+            if (gamepad1.dpad_up == true) {
+                intake.setPower(intakeSpeed);
+                intake2.setPower(intakeSpeed);
+            }
+            if (gamepad1.dpad_down == true) {
+                intake.setPower(0);
+                intake2.setPower(0);
+            }
+            int tru = 0;
+            if(gamepad1.dpad_right== true && tru == 0) {
+                shoot1.setPower(-1);
+            }
+            if(gamepad1.a == true){
+                servo0.setPosition(.8);
+                sleep(500);
+                servo0.setPosition(1);
+            }
+            if(gamepad1.dpad_left == true){
+                shoot.setPower(0);
+                shoot1.setPower(0);
+            }
+/*
+            if (gamepad1.dpad_up == true) {
+                int start = gyro.getHeading();
+                if (start >= 180) {
+                    //turn right until gyro = 0
+                    if(start >= 269){
+                        while (gyro.getHeading() != 357) {
+                            leftWheel.setPower(-.25);
+                            backLeftWheel.setPower(-.25);
+                            rightWheel.setPower(.25);
+                            backRightWheel.setPower(.25);
+                        }
+                    }else{
+                        while (gyro.getHeading() != 355){
+                            leftWheel.setPower(-.25);
+                            backLeftWheel.setPower(-.25);
+                            rightWheel.setPower(.25);
+                            backRightWheel.setPower(.25);
+                        }
+                    }
+                } else if (start <= 180 && start != 0){
+                    if(start <= 79){
+                        while (gyro.getHeading() != 3) {
+                            leftWheel.setPower(.25);
+                            backLeftWheel.setPower(.25);
+                            rightWheel.setPower(-.25);
+                            backRightWheel.setPower(-.25);
+                        }
+                    }else{
+                        while (gyro.getHeading() != 5){
+                            leftWheel.setPower(.25);
+                            backLeftWheel.setPower(.25);
+                            rightWheel.setPower(-.25);
+                            backRightWheel.setPower(-.25);
+                        }
+                    }
+                }
+                leftWheel.setPower(0);
+                backLeftWheel.setPower(0);
+                rightWheel.setPower(0);
+                backRightWheel.setPower(0);
+            }
+*/
+
+
+
+            //backup controller
+            lw += (gamepad2.left_stick_y - gamepad2.left_stick_x - gamepad2.right_stick_x) * (-speedAdjust / 10);
+            rw += (gamepad2.left_stick_y + gamepad2.left_stick_x + gamepad2.right_stick_x) * (-speedAdjust / 10);
+            blw += (gamepad2.left_stick_y + gamepad2.left_stick_x - gamepad2.right_stick_x) * (-speedAdjust / 10);
+            brw += (gamepad2.left_stick_y - gamepad2.left_stick_x + gamepad2.right_stick_x) * (-speedAdjust / 10);
+
+            // Wheel power set to the variable so it can be added together from different lines. So they don't interfere with each other.
+            leftWheel.setPower(lw);
+            rightWheel.setPower(rw);
+            backLeftWheel.setPower(blw);
+            backRightWheel.setPower(brw);
+
+            targetDegree += gamepad1.right_stick_x * 10;
+            targetDegree = degreeCalc(targetDegree);
+
+            if(gamepad1.right_trigger > 0){
+                targetDegree = 0;
+            }
+            /*
+            if(gamepad2.dpad_left == true){
+                int start = gyro.getHeading();
+                if(start <= 271){
+                    while(gyro.getHeading() != start + 88){
+                        leftWheel.setPower(-.25);
+                        backLeftWheel.setPower(-.25);
+                        rightWheel.setPower(.25);
+                        backRightWheel.setPower(.25);
+                    }
+                }else{
+                    while(gyro.getHeading() != start - 272){
+                        leftWheel.setPower(-.25);
+                        backLeftWheel.setPower(-.25);
+                        rightWheel.setPower(.25);
+                        backRightWheel.setPower(.25);
+                    }
+                }
+                leftWheel.setPower(0);
+                backLeftWheel.setPower(0);
+                rightWheel.setPower(0);
+                backRightWheel.setPower(0);
+            }
+
+            if (gamepad2.dpad_right == true) {
+                int start = gyro.getHeading();
+                if(start >= 88){
+                    while(gyro.getHeading() != start - 88){
+                        leftWheel.setPower(.25);
+                        backLeftWheel.setPower(.25);
+                        rightWheel.setPower(-.25);
+                        backRightWheel.setPower(-.25);
+                    }
+                }else{
+                    while(gyro.getHeading() != start + 272){
+                        leftWheel.setPower(.25);
+                        backLeftWheel.setPower(.25);
+                        rightWheel.setPower(-.25);
+                        backRightWheel.setPower(-.25);
+                    }
+                }
+                leftWheel.setPower(0);
+                backLeftWheel.setPower(0);
+                rightWheel.setPower(0);
+                backRightWheel.setPower(0);
+            }
+            if (gamepad2.dpad_up == true) {
+                int start = gyro.getHeading();
+                if (start >= 180) {
+                    //turn right until gyro = 0
+                    if(start >= 269){
+                        while (gyro.getHeading() != 357) {
+                            leftWheel.setPower(-.25);
+                            backLeftWheel.setPower(-.25);
+                            rightWheel.setPower(.25);
+                            backRightWheel.setPower(.25);
+                        }
+                    }else{
+                        while (gyro.getHeading() != 355){
+                            leftWheel.setPower(-.25);
+                            backLeftWheel.setPower(-.25);
+                            rightWheel.setPower(.25);
+                            backRightWheel.setPower(.25);
+                        }
+                    }
+                } else if (start <= 180 && start != 0){
+                    if(start <= 79){
+                        while (gyro.getHeading() != 3) {
+                            leftWheel.setPower(.25);
+                            backLeftWheel.setPower(.25);
+                            rightWheel.setPower(-.25);
+                            backRightWheel.setPower(-.25);
+                        }
+                    }else{
+                        while (gyro.getHeading() != 5){
+                            leftWheel.setPower(.25);
+                            backLeftWheel.setPower(.25);
+                            rightWheel.setPower(-.25);
+                            backRightWheel.setPower(-.25);
+                        }
+                    }
+                }
+                leftWheel.setPower(0);
+                backLeftWheel.setPower(0);
+                rightWheel.setPower(0);
+                backRightWheel.setPower(0);
+            }
+            if (gamepad2.dpad_down == true){
+                int start = gyro.getHeading();
+                if (start <= 177){
+                    while (gyro.getHeading() != start + 178) {
+                        leftWheel.setPower(-.25);
+                        backLeftWheel.setPower(-.25);
+                        rightWheel.setPower(.25);
+                        backRightWheel.setPower(.25);
+                    }
+                } else{
+                    while (gyro.getHeading() != start - 178) {
+                        leftWheel.setPower(.25);
+                        backLeftWheel.setPower(.25);
+                        rightWheel.setPower(-.25);
+                        backRightWheel.setPower(-.25);
+                    }
+                }
+                leftWheel.setPower(0);
+                backLeftWheel.setPower(0);
+                rightWheel.setPower(0);
+                backRightWheel.setPower(0);
+            }
+            // Show the elapsed game time
+            telemetry.addData("Status", "Run Time: " + runtime.toString());
+            telemetry.addData("Gyro Heading: ", gyro.getHeading());
+            */
+            telemetry.update();
+
+
+        }
+    }
+}
+
