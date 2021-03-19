@@ -1,0 +1,354 @@
+package  org.firstinspires.ftc.teamcode.TeleOp;
+
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.GyroSensor;
+import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.hardware.CRServo;
+
+
+@TeleOp(name = "Driver", group =  "Telep")
+public class TeleOpBlackOps extends LinearOpMode {
+
+    //Motors
+    DcMotor lw;
+    DcMotor rw;
+    DcMotor blw;
+    DcMotor brw;
+    DcMotor in0;
+    DcMotor in1;
+    DcMotor shoot;
+
+    //Servos
+    Servo flick;
+    CRServo linear;
+    Servo arm;
+    Servo fingers;
+
+    //Sensors
+    GyroSensor gyro;
+
+    //Speed
+    double speedAdjust = 7.5;
+
+    // Gyro settings (works fine but can be improved)
+    // It is linear again because I forgot to save
+    double adjSpeed = 0.025;
+    double minTurn = 0.007;
+    int windowSize = 1;
+    int targetDegree = 0;
+        // piecewise graph function settings
+    int piecewiseWindow = 4;
+    double piecewiseSpeed = 0.025;
+    double piecewiseMinTurn = 0.007;
+
+
+    // Line to make the power variables public
+    public double leftPower, rightPower, backLeftPower, backRightPower;
+
+    // button variables used for button processing
+    boolean bufferA = true;
+    boolean toggleA = true;
+    double timeA = 0;
+    boolean timeAUpdate = true;
+    double timeARunTime;
+    double timeB = 0;
+    boolean timeBUpdate = true;
+    double timeBRunTime;
+
+    boolean bufferX = true;
+    boolean toggleX = true;
+
+    // Function to make invalid degrees valid
+    public int degreeCalc(int degree){
+        int returnDegree = degree;
+        if(returnDegree < 0){
+            returnDegree = returnDegree + 360;
+        }
+        if(returnDegree >= 360){
+            returnDegree = returnDegree - 360;
+        }
+        return returnDegree;
+
+    }
+
+    // Turn function
+    // when called to it sets the turn power variables to turn right the desired amount
+    public void turnPower(double amount){
+        // use a positive parameter to turn right (clockwise)
+        // use a negative parameter to turn left (counterclockwise)
+        leftPower += amount;
+        rightPower -= amount;
+        backLeftPower += amount;
+        backRightPower -= amount;
+    }
+
+
+    @Override
+    public void runOpMode() {
+        telemetry.addData("Status", "Initialized");
+        telemetry.update();
+
+        lw = hardwareMap.dcMotor.get("lw");
+        rw = hardwareMap.dcMotor.get("rw");
+        rw.setDirection(DcMotor.Direction.REVERSE);
+        brw = hardwareMap.dcMotor.get("brw");
+        brw.setDirection(DcMotor.Direction.REVERSE);
+        blw = hardwareMap.dcMotor.get("blw");
+        in0 = hardwareMap.dcMotor.get("ina");
+        in1 = hardwareMap.dcMotor.get("inb");
+        in1.setDirection(DcMotor.Direction.REVERSE);
+        shoot = hardwareMap.dcMotor.get("shoot");
+        flick = hardwareMap.servo.get("flick");
+        flick.setPosition(0);
+        arm = hardwareMap.servo.get("flick");
+        //flick.setPosition(1);
+        //fingers = hardwareMap.servo.get("fingers");
+        linear = hardwareMap.crservo.get("linear");
+        //linear.setPower(0);
+        gyro = hardwareMap.gyroSensor.get("gyro");
+        gyro.calibrate();
+
+        // Wait for the game to start (driver presses PLAY)
+        waitForStart();
+
+        // run until the end of the match (driver presses STOP)
+        while (opModeIsActive()) {
+
+            int heading = gyro.getHeading();
+            int xVal = gyro.rawX();
+            int yVal = gyro.rawY();
+            int zVal = gyro.rawZ();
+
+            telemetry.addData("1. Heading: ", heading);
+            telemetry.addData("2. X: ", xVal);
+            telemetry.addData("2. Y: ", yVal);
+            telemetry.addData("2. Z: ", zVal);
+
+            telemetry.addData("rightControlX", gamepad1.right_stick_x);
+            telemetry.addData("rightControlY", gamepad1.right_stick_y);
+            telemetry.addData("Time", time);
+            telemetry.addData("runtimeA", timeARunTime);
+
+
+            telemetry.update();
+
+
+            // Inputs to the motors
+            leftPower = (-gamepad1.left_stick_y + gamepad1.left_stick_x) * (-speedAdjust / 10);
+            rightPower = (-gamepad1.left_stick_y - gamepad1.left_stick_x) * (-speedAdjust / 10);
+            backLeftPower = (-gamepad1.left_stick_y - gamepad1.left_stick_x) * (-speedAdjust / 10);
+            backRightPower = (-gamepad1.left_stick_y + gamepad1.left_stick_x) * (-speedAdjust / 10);
+
+            // targetDegree is currently affected by the right stick and it changes the degrees the robot goes towards
+            targetDegree += gamepad1.right_stick_x;
+            targetDegree = degreeCalc(targetDegree);
+/*
+
+            // This does not work right now (We wont use this, it is very old and not as good as what we are doing now)
+            if ((gyro.getHeading() >  degree + windowSize && gyro.getHeading() <= degreeCalc(180)||(gyro.getHeading() > degreeCalc(windowSize)))) {
+                lw -= Math.abs(degree - gyro.getHeading()) * adjSpeed + minTurn;
+                rw += Math.abs(degree - gyro.getHeading()) * adjSpeed + minTurn;
+                blw -= Math.abs(degree - gyro.getHeading()) * adjSpeed + minTurn;
+                brw += Math.abs(degree - gyro.getHeading()) * adjSpeed + minTurn;
+            }
+
+            if ((gyro.getHeading() > degreeCalc(180) && gyro.getHeading() < degree-windowSize) || (gyro.getHeading() < degreeCalc(-windowSize))) {
+                lw += degreeCalc(degree + 360 - gyro.getHeading()) * adjSpeed + minTurn;
+                rw -= degreeCalc(degree + 360 - gyro.getHeading()) * adjSpeed + minTurn;
+                blw += degreeCalc(degree + 360 - gyro.getHeading()) * adjSpeed + minTurn;
+                brw -= degreeCalc(degree + 360 - gyro.getHeading()) * adjSpeed + minTurn;
+            }*/
+
+            // The first graph function farther from 0 degrees
+
+            // To document whats going on in this one line I have several lines explaining each part and the following if statements work similarly so hopefully this can explain most of them
+                // The whole if statement is checking if the current degrees the gyro outputs is between a range of 0 and 180, from the target degree, 0 would be on the target degree, if it is within this range than it turns left to get to 0 faster, if it is greater than 180 degrees or less than 1 it turns right to get to 0 faster.
+                //degreeCalc makes invalid degrees valid and it is done last to make the final result valid
+                    // for the part (gyro.getHeading() - targetDegree) because this whole part of the code tries to make the robot face 0, changing the target degrees works by offsetting the degree the gyro outputs to the opposite amount of the target degree so when it corrects to 0 it ends up going to the target degree instead of real 0
+                        // for the part (> windowSize + piecewiseWindow) normally this part would be 0 so it could see if it was greater than 0, but I added other stuff that would add to 0 and when adding to 0 you don't need the 0 and can just have the thing you are adding, so the thing I added there was the windowSize and piecewiseWindow which are both for making the range the degree has to be greater than a higher degree for it to be true.
+                            // The other side of the && works about the same but it is checking if it is less than or equal to 180, also this does not have a window that adjusts what it needs to be less than
+            if (degreeCalc(gyro.getHeading() - targetDegree) > windowSize + piecewiseWindow && degreeCalc(gyro.getHeading() - targetDegree) <= 180) {
+
+                /*leftPower -= degreeCalc(gyro.getHeading() - targetDegree) * adjSpeed + minTurn;
+                rightPower += degreeCalc(gyro.getHeading() - targetDegree) * adjSpeed + minTurn;
+                backLeftPower -= degreeCalc(gyro.getHeading() - targetDegree) * adjSpeed + minTurn;
+                backRightPower += degreeCalc(gyro.getHeading() - targetDegree) * adjSpeed + minTurn;
+                */
+
+                // I added a turn function, so now it only takes 1 line to turn left or right
+                turnPower(-(degreeCalc(gyro.getHeading() - targetDegree) * adjSpeed + minTurn));
+            }
+            if (degreeCalc(gyro.getHeading() - targetDegree) < 360 - windowSize - piecewiseWindow && degreeCalc(gyro.getHeading() - targetDegree) > 180) {
+                /*leftPower += (360 - degreeCalc(gyro.getHeading() - targetDegree)) * adjSpeed + minTurn;
+                rightPower -= (360 - degreeCalc(gyro.getHeading() - targetDegree)) * adjSpeed + minTurn;
+                backLeftPower += (360 - degreeCalc(gyro.getHeading() - targetDegree)) * adjSpeed + minTurn;
+                backRightPower -= (360 - degreeCalc(gyro.getHeading() - targetDegree)) * adjSpeed + minTurn;
+                */
+
+
+                turnPower((360 - degreeCalc(gyro.getHeading() - targetDegree)) * adjSpeed + minTurn);
+            }
+
+            // Second graph function (piecewise) the one that is closer to 0 degrees
+            if (degreeCalc(gyro.getHeading() - targetDegree) > windowSize && degreeCalc(gyro.getHeading() - targetDegree) <= piecewiseWindow + windowSize) {
+                /*leftPower -= degreeCalc(gyro.getHeading() - targetDegree) * piecewiseSpeed + piecewiseMinTurn;
+                rightPower += degreeCalc(gyro.getHeading() - targetDegree) * piecewiseSpeed + piecewiseMinTurn;
+                backLeftPower -= degreeCalc(gyro.getHeading() - targetDegree) * piecewiseSpeed + piecewiseMinTurn;
+                backRightPower += degreeCalc(gyro.getHeading() - targetDegree) * piecewiseSpeed + piecewiseMinTurn;
+                */
+
+
+                turnPower(-(degreeCalc(gyro.getHeading() - targetDegree) * piecewiseSpeed + piecewiseMinTurn));
+            }
+            if (degreeCalc(gyro.getHeading() - targetDegree) < 360 - windowSize && degreeCalc(gyro.getHeading() - targetDegree) > 360 - piecewiseWindow - windowSize) {
+                /*leftPower += (360 - degreeCalc(gyro.getHeading() - targetDegree)) * piecewiseSpeed + piecewiseMinTurn;
+                rightPower -= (360 - degreeCalc(gyro.getHeading() - targetDegree)) * piecewiseSpeed + piecewiseMinTurn;
+                backLeftPower += (360 - degreeCalc(gyro.getHeading() - targetDegree)) * piecewiseSpeed + piecewiseMinTurn;
+                backRightPower -= (360 - degreeCalc(gyro.getHeading() - targetDegree)) * piecewiseSpeed + piecewiseMinTurn;
+                */
+
+
+                turnPower((360 - degreeCalc(gyro.getHeading() - targetDegree)) * piecewiseSpeed + piecewiseMinTurn);
+            }
+
+            lw.setPower(leftPower);
+            rw.setPower(rightPower);
+            blw.setPower(backLeftPower);
+            brw.setPower(backRightPower);
+
+            double intakeSpeed = -.75;
+
+            if (gamepad1.dpad_up == true) {
+                in0.setPower(intakeSpeed);
+                in1.setPower(intakeSpeed);
+            }
+            if (gamepad1.dpad_down == true) {
+                in0.setPower(0);
+                in1.setPower(0);
+            }
+            int tru = 0;
+            if (gamepad1.dpad_right == true && tru == 0) {
+                shoot.setPower(1);
+            }
+            if (gamepad1.right_trigger == 1) {
+
+                for(int i = 0; i < 3; i++)
+                {
+                    flick.setPosition(-.2);
+                    sleep(50);
+                    flick.setPosition(0);
+                    sleep(800);
+                }
+            }
+
+            if (gamepad1.b)
+            {
+                flick.setPosition(-.2);
+                sleep(50);
+                flick.setPosition(0);
+                sleep(800);
+            }
+
+
+
+            /*if(timeAUpdate){
+                timeA = time;
+            }else {
+                timeARunTime = time - timeA;
+            }
+            if(timeBUpdate){
+                timeB = time;
+            }else {
+                timeBRunTime = time - timeB;
+            }
+
+            if(timeARunTime == 0 && timeBRunTime == 0){
+                timeBRunTime = 2;
+            }
+
+            if(linear.getPower() > 0 && time - timeA > timeBRunTime){
+                linear.setPower(0);
+                timeAUpdate = true;
+                timeBRunTime = 0;
+            }
+
+
+
+            if(linear.getPower() < 0 && time - timeB > timeARunTime){
+                linear.setPower(0);
+                timeBUpdate = true;
+                timeARunTime = 0;
+            }*/
+
+            if(gamepad1.a)
+            {
+                if(bufferA){
+
+                    bufferA = false;
+                    if(toggleA){
+                        //First A press activates this if statement
+                        linear.setPower(.5);
+                        toggleA = false;
+                        /*timeA = time;
+                        timeAUpdate = false;
+                        timeBUpdate = true;*/
+                    } else{
+                        //Second A press activates this if statement
+                        linear.setPower(0);
+                        toggleA = true;
+                        /*timeB = time;
+                        timeBUpdate = false;
+                        timeAUpdate = true;*/
+                    }
+
+                }
+                    /*if (gamepad1.x)
+                    {
+                        linear.setPower(0);
+                    }
+
+                }*/
+            } else {
+                bufferA = true;
+            }
+
+
+            if(gamepad1.x){
+                /*linear.setPower(-.5);
+                sleep(1000);*/
+
+                if(bufferX){
+
+                    bufferX = false;
+                    if(toggleX){
+                        linear.setPower(-.5);
+                        toggleX = false;
+
+                    } else{
+                        linear.setPower(0);
+                        toggleX = true;
+                    }
+
+                }
+            }else{
+                //linear.setPower(0);
+
+                bufferX = true;
+            }
+
+
+
+            if (gamepad1.dpad_left == true) {
+                shoot.setPower(0);
+            }
+          /*  if(gamepad1.b == true){
+                trap.setPosition(1);
+            }
+            if(gamepad1.x == true){
+                trap.setPosition(0);
+            }*/
+        }
+    }
+}
