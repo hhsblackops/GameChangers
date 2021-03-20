@@ -1,0 +1,277 @@
+package org.firstinspires.ftc.teamcode.Autonomous;
+
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.hardware.GyroSensor;
+import static com.qualcomm.robotcore.hardware.DcMotor.RunMode.RUN_TO_POSITION;
+import com.qualcomm.robotcore.hardware.CRServo;
+import org.firstinspires.ftc.robotcore.external.ClassFactory;
+import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
+import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
+import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
+
+import java.util.List;
+
+@Autonomous(name="Auto", group="AutoDrive")
+public class AutoBlackOps extends LinearOpMode {
+    //To give us information
+    private static final String TFOD_MODEL_ASSET = "UltimateGoal.tflite";
+    private static final String LABEL_FIRST_ELEMENT = "Stack";
+    private static final String LABEL_SECOND_ELEMENT = "Single";
+
+    //Motors
+    DcMotor lw;
+    DcMotor rw;
+    DcMotor blw;
+    DcMotor brw;
+    DcMotor in0;
+    DcMotor in1;
+    DcMotor shoot;
+
+    //Servos
+    Servo flick;
+    Servo fingers;
+    CRServo linear;
+    Servo arm;
+
+    //Sensors
+    GyroSensor gyro;
+
+    //Cameras
+    VuforiaLocalizer vuforia;
+    TFObjectDetector tfod;
+
+    @Override
+    public void runOpMode() {
+        List<Recognition> data = null;
+        int numrings = 0;
+        Init();
+        setUpRecognition();
+
+        telemetry.addData(">", "Press Play to start op mode");
+        telemetry.update();
+        waitForStart();
+
+        for(int i = 0; i < 2500000; ++i){
+           data = findItems();
+
+           if(data != null){
+               break;
+           }
+        }
+        if(data!= null) {
+            if (data.get(0).getLabel() == "Stack") {
+                numrings = 4;
+            }
+            else if(data.get(0).getLabel() == "Single") {
+                numrings = 1;
+            }
+        }
+        while(opModeIsActive()){
+            telemetry.addData("number of rings", numrings);
+            telemetry.update();
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    public  int degreeCalc(int degree){
+        int returnDegree = degree;
+        if(degree < 0){
+            returnDegree += 360;
+        }
+        if(degree >= 360){
+            returnDegree -= 360;
+        }
+        return returnDegree;
+    }
+
+    //Drive stop
+    public void stopDrive(){
+        lw.setPower(0);
+        rw.setPower(0);
+        blw.setPower(0);
+        brw.setPower(0);
+    }
+
+    //public void wobUp(){ wob.setPosition(0); }
+
+    //public void wobDown(){ wob.setPosition(1); }
+
+    // Initilize
+    public void Init(){
+        lw = hardwareMap.dcMotor.get("lw");
+        rw = hardwareMap.dcMotor.get("rw");
+        rw.setDirection(DcMotor.Direction.REVERSE);
+        brw = hardwareMap.dcMotor.get("brw");
+        brw.setDirection(DcMotor.Direction.REVERSE);
+        blw = hardwareMap.dcMotor.get("blw");
+        in0 = hardwareMap.dcMotor.get("ina");
+        in1 = hardwareMap.dcMotor.get("inb");
+        in1.setDirection(DcMotor.Direction.REVERSE);
+        shoot = hardwareMap.dcMotor.get("shoot");
+        flick = hardwareMap.servo.get("flick");
+        flick.setPosition(1);
+        arm = hardwareMap.servo.get("arm");
+        fingers = hardwareMap.servo.get("fingers");
+        linear = hardwareMap.crservo.get("linear");
+        gyro = hardwareMap.gyroSensor.get("gyro");
+        gyro.calibrate();
+        initVuforia();
+        initTfod();
+
+        //opd = hardwareMap.opticalDistanceSensor.get("opd_sensor");
+        //opd.enableLed(true);
+    }
+
+    //Setting Power to the same thing for the motors
+    public void run(double power){
+        lw.setPower(power);
+        rw.setPower(power);
+        blw.setPower(power);
+        brw.setPower(power);
+    }
+
+    //Side to Side movement with power being same
+    public void siderun(double power){
+        lw.setPower(-power);
+        rw.setPower(-power);
+        brw.setPower(power);
+        blw.setPower(-power);
+    }
+
+    //Forward/Backwards Movement
+    private void straight(int tics, double power){
+        int start = lw.getCurrentPosition();
+        lw.setTargetPosition(start + tics);
+        if(tics > 0){
+            run(power);
+            lw.setMode(RUN_TO_POSITION);
+            while (lw.isBusy()){
+                telemetry.addData("Tics", lw.getCurrentPosition());
+                telemetry.update();
+            }
+            stopDrive();
+        }
+        else if (tics < 0){
+            run(-power);
+            lw.setMode(RUN_TO_POSITION);
+            while (lw.isBusy())
+            {
+                telemetry.addData("Tics", lw.getCurrentPosition());
+                telemetry.update();
+            }
+
+            stopDrive();
+        }
+    }
+
+    //Strafing, + = right & - = left
+    private void side(int tics, double power){
+        int start = lw.getCurrentPosition();
+        lw.setTargetPosition(start + tics);
+        if(tics < 0){
+            siderun(-power);
+            lw.setMode(RUN_TO_POSITION);
+            while(lw.isBusy()){
+                telemetry.addData("Tics", lw.getCurrentPosition());
+                telemetry.update();
+            }
+            stopDrive();
+        }
+        if(tics > 0){
+            siderun(power);
+            lw.setMode(RUN_TO_POSITION);
+            while(lw.isBusy()){
+                telemetry.addData("Tics", lw.getCurrentPosition());
+                telemetry.update();
+            }
+            stopDrive();
+        }
+    }
+    private void initVuforia() {
+        VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters();
+        parameters.vuforiaLicenseKey = "AdVdFHb/////AAABmTrtSk2IBEC3kcsmf+jj6dZ+IBrlySlXBxLBhVux/9ynN40mNtmmJDumGH5KSUa/5I071PAVDJDhAiPVL6Gql0qF/uZa3YfPawIo15gbxdZ2J9OXEyLMEcMC2k/YRxocV44f8m9C4nX+5FElzBQc42BvMaMyr2TeTj+hzMEghGi4HjMr4E6Fqs6/sHoHbKpcESuS3OttD0mjfS+7tuoEhxMTAwFW8IfAmNTf5kKErxOdVMQbLHqOsWHDn8jv/UY5KMGKiHbqpl45TQX3tYzHn4VpCU9dcJbYNJneOcB4TNt2/ZyY+qNkLqisPNM7WtlL9m37Hh9932STvDtVRNMCQdDEU0iuwFZc7UCDy+6sjxrO";
+        parameters.cameraDirection = VuforiaLocalizer.CameraDirection.BACK;
+        vuforia = ClassFactory.getInstance().createVuforia(parameters);
+        parameters.useExtendedTracking = false;
+    }
+    private void initTfod() {
+        int tfodMonitorViewId = hardwareMap.appContext.getResources().getIdentifier(
+                "tfodMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+        TFObjectDetector.Parameters tfodParameters = new TFObjectDetector.Parameters(tfodMonitorViewId);
+        tfodParameters.minResultConfidence = 0.8f;
+        tfod = ClassFactory.getInstance().createTFObjectDetector(tfodParameters, vuforia);
+        tfod.loadModelFromAsset(TFOD_MODEL_ASSET, LABEL_FIRST_ELEMENT, LABEL_SECOND_ELEMENT);
+    }
+    private void setUpRecognition(){
+        if(tfod != null){
+            tfod.activate();
+        }
+    }
+    private List<Recognition> findItems(){
+        int i = 0;
+        if (tfod != null) {
+            List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
+            if (updatedRecognitions != null) {
+                telemetry.addData("# Object Detected", updatedRecognitions.size());
+                for (Recognition recognition : updatedRecognitions) {
+                    telemetry.addData(String.format("label (%d)", i), recognition.getLabel());
+                    telemetry.addData(String.format("  left,top (%d)", i), "%.03f , %.03f",
+                            recognition.getLeft(), recognition.getTop());
+                    telemetry.addData(String.format("  right,bottom (%d)", i), "%.03f , %.03f",
+                            recognition.getRight(), recognition.getBottom());
+                }
+            }
+            telemetry.update();
+            if(i == 0){
+                return null;
+            }
+            return updatedRecognitions;
+        }
+        return null;
+    }
+}
+
