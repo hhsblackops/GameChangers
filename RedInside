@@ -1,0 +1,1122 @@
+package org.firstinspires.ftc.teamcode;
+
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.CRServo;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.GyroSensor;
+import com.qualcomm.robotcore.hardware.Servo;
+import static com.qualcomm.robotcore.hardware.DcMotor.RunMode.RUN_TO_POSITION;
+import static com.qualcomm.robotcore.hardware.DcMotor.RunMode.STOP_AND_RESET_ENCODER;
+import org.firstinspires.ftc.robotcore.external.ClassFactory;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.Camera;
+import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
+import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
+import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
+
+import java.util.List;
+
+import static com.qualcomm.robotcore.hardware.DcMotor.RunMode.RUN_TO_POSITION;
+
+@Autonomous(name="RedInside", group="AutoDrive")
+public class RedInsidePower extends LinearOpMode {
+    //To give us information
+    private static final String TFOD_MODEL_ASSET = "UltimateGoal.tflite";
+    private static final String LABEL_FIRST_ELEMENT = "Stack";
+    private static final String LABEL_SECOND_ELEMENT = "Single";
+    int notdone = 0;
+
+    //Motors
+    DcMotor lw;
+    DcMotor rw;
+    DcMotor blw;
+    DcMotor brw;
+    DcMotor in0;
+    DcMotor in1;
+    DcMotor shoot;
+    Camera camera;
+
+    //Servos
+    Servo flick;
+    Servo fingers;
+    Servo rotateserv;
+    Servo arm;
+    Servo drop;
+
+    //Sensors
+    GyroSensor gyro;
+
+    //Cameras
+    VuforiaLocalizer vuforia;
+    TFObjectDetector tfod;
+
+    //Gyro Straight Variables
+    double adjSpeed = 0.027;
+    double minTurn = 0.007;
+    int windowSize = 1;
+    int targetDegree = 0;
+    // piecewise graph function settings
+    int piecewiseWindow = 30;
+    double piecewiseSpeed = 0.007517647057771725;
+    double piecewiseMinTurn = 0.004;
+    public double leftPower, rightPower, backLeftPower, backRightPower;
+
+    //Straight and Side Variable
+    double powerlw;
+    double powerrw;
+    double powerblw;
+    double powerbrw;
+    double resultlw;
+    double resultblw;
+    double resultrw;
+    double resultbrw;
+
+    double shootPower = -.575;
+    // Gyro Turn function
+    // when called to it sets the turn power variables to turn right the desired amount
+    public void turnPower(double amount){
+        // use a positive parameter to turn right (clockwise)
+        // use a negative parameter to turn left (counterclockwise)
+        powerlw += amount;
+        powerrw -= amount;
+        powerblw += amount;
+        powerbrw -= amount;
+    }
+
+    @Override
+    public void runOpMode() {
+        List<Recognition> data = null;
+        int numrings = 0;
+        Init();
+        setUpRecognition();
+
+        waitForStart();
+
+        /*
+        //Drive to Stack
+        straight(1750,1750);
+        gyroStraight();
+        side(850,850);
+*/
+        //Read Rings
+        straight(1400, 1400);
+        rotate(600,600);
+        straight(150,150);
+        for(int i = 0; i < 15000; ++i){
+            data = findItems();
+            if(data != null){
+                break;
+            }
+        }
+        if(data!= null) {
+            if (data.get(0).getLabel().equals("Stack")) {
+                numrings = 4;
+            }
+            else if(data.get(0).getLabel().equals("Single")) {
+                numrings = 1;
+            }
+        }
+
+        shoot.setPower(shootPower);
+        telemetry.addData("numrings", numrings);
+        rotate(-600,-600);
+        straight((4000-1300),(4000-1300));
+        side(-500,-500);
+        powershot();
+        if(numrings == 0){
+            side(2700,2700);
+            rotate90(1);
+            drop.setPosition(.5);
+            sleep(1000);
+            straight(-1500,-1500);
+            side(-500,-500);
+        }
+        if(numrings == 1){
+            straight(1150,1150);
+            side(2150,2150);
+            drop.setPosition(.5);
+            sleep(1000);
+            side(-2150,-2150);
+            straight(-500,-500);
+        }
+        if(numrings == 4){
+            diagleft(4500,4500);
+            side(1450,1450);
+            rotate90(1);
+            drop.setPosition(.5);
+            sleep(1000);
+            rotate90(-1);
+            diagleft(-4000,-4000);
+        }
+
+
+
+        /*
+        straight(4000, 4000);
+        side(-500,-500);
+        powershot();
+        straight(500,500);
+        arm.setPosition(.15);
+
+         */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    }
+    public void rotate(double tics, int tic){
+        lw.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rw.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        blw.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        brw.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        lw.setTargetPosition(-tic);
+        blw.setTargetPosition(-tic);
+        rw.setTargetPosition(tic);
+        brw.setTargetPosition(tic);
+        lw.setMode(RUN_TO_POSITION);
+        rw.setMode(RUN_TO_POSITION);
+        blw.setMode(RUN_TO_POSITION);
+        brw.setMode(RUN_TO_POSITION);
+        while (lw.isBusy() || rw.isBusy() || brw.isBusy() || blw.isBusy()) {
+            if(tics > 0){
+                resultlw = (tics+lw.getCurrentPosition());
+                resultblw = (tics+blw.getCurrentPosition());
+                resultrw = (tics-rw.getCurrentPosition());
+                resultbrw = (tics-brw.getCurrentPosition());
+                if(resultlw < 200){
+                    powerlw = .2;
+                    lw.setPower(powerlw);
+                }else if (resultlw >= 200 || resultlw <= 1000){
+                    powerlw = ((3*resultlw)/4000);
+                    lw.setPower(powerlw);
+                }else if(resultlw >1000){
+                    powerlw = 1;
+                    lw.setPower(powerlw);
+                }
+                if(resultblw < 200){
+                    powerblw =.2;
+                    blw.setPower(powerblw);
+                }else if(resultblw >= 200 || resultblw <= 1000){
+                    powerblw = ((3*resultblw)/4000);
+                    blw.setPower(powerblw);
+                }else if(resultblw >1000){
+                    powerblw = 1;
+                    blw.setPower(powerblw);
+                }
+                if(resultrw < 200){
+                    powerrw = .2;
+                    rw.setPower(powerrw);
+                }else if(resultrw >= 200 || resultrw <= 1000){
+                    powerrw = ((3*resultrw)/4000);
+                    rw.setPower(powerrw);
+                }else if(resultrw >1000){
+                    powerrw = 1;
+                    rw.setPower(powerrw);
+                }
+                if(resultbrw <200){
+                    powerbrw = .2;
+                    brw.setPower(powerbrw);
+                }else if(resultbrw >= 200|| resultbrw >= 1000){
+                    powerbrw = ((3*resultbrw)/4000);
+                    brw.setPower(powerbrw);
+                }else if(resultbrw >1000){
+                    powerbrw = 1;
+                    brw.setPower(powerbrw);
+                }
+            } else if(tics < 0) {
+                resultlw = ((-tics)-lw.getCurrentPosition());
+                resultblw = ((-tics)-blw.getCurrentPosition());
+                resultrw = ((-tics)+rw.getCurrentPosition());
+                resultbrw = ((-tics)+brw.getCurrentPosition());
+                if(resultlw < 200){
+                    powerlw = .2;
+                    lw.setPower(powerlw);
+                }else if (resultlw >= 200 || resultlw <= 1000){
+                    powerlw = ((3*resultlw)/4000);
+                    lw.setPower(powerlw);
+                }else if(resultlw >1000){
+                    powerlw = 1;
+                    lw.setPower(powerlw);
+                }
+                if(resultblw < 200){
+                    powerblw =.2;
+                    blw.setPower(powerblw);
+                }else if(resultblw >= 200 || resultblw <= 1000){
+                    powerblw = ((3*resultblw)/4000);
+                    blw.setPower(powerblw);
+                }else if(resultblw >1000){
+                    powerblw = 1;
+                    blw.setPower(powerblw);
+                }
+                if(resultrw < 200){
+                    powerrw = .2;
+                    rw.setPower(powerrw);
+                }else if(resultrw >= 200 || resultrw <= 1000){
+                    powerrw = ((3*resultrw)/4000);
+                    rw.setPower(powerrw);
+                }else if(resultrw >1000){
+                    powerrw = 1;
+                    rw.setPower(powerrw);
+                }
+                if(resultbrw <200){
+                    powerbrw = .2;
+                    brw.setPower(powerbrw);
+                }else if(resultbrw >= 200|| resultbrw >= 1000){
+                    powerbrw = ((3*resultbrw)/4000);
+                    brw.setPower(powerbrw);
+                }else if(resultbrw >1000){
+                    powerbrw = 1;
+                    brw.setPower(powerbrw);
+                }
+            }
+            telemetry.addData("LW Tics", lw.getCurrentPosition());
+            telemetry.addData("LW GOAL", -tics);
+            telemetry.addData("BLW Tics", blw.getCurrentPosition());
+            telemetry.addData("BLW GOAL", -tics);
+            telemetry.addData("RW Tics", rw.getCurrentPosition());
+            telemetry.addData("RW GOAL", tics);
+            telemetry.addData("BRW Tics", brw.getCurrentPosition());
+            telemetry.addData("BRW GOAL", tics);
+            telemetry.update();
+        }
+        stopDrive();
+    }
+    public void rotate90(double direction){
+        lw.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rw.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        blw.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        brw.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        if (direction < 0){
+            int target = -1;
+            lw.setTargetPosition(-1300*target);
+            blw.setTargetPosition(-1300*target);
+            rw.setTargetPosition(1300*target);
+            brw.setTargetPosition(1300*target);
+        }else {
+            lw.setTargetPosition(-1300);
+            blw.setTargetPosition(-1300);
+            rw.setTargetPosition(1300);
+            brw.setTargetPosition(1300);
+        }
+        lw.setMode(RUN_TO_POSITION);
+        rw.setMode(RUN_TO_POSITION);
+        blw.setMode(RUN_TO_POSITION);
+        brw.setMode(RUN_TO_POSITION);
+        while (lw.isBusy() || rw.isBusy() || brw.isBusy() || blw.isBusy()) {
+            if(direction > 0){
+                resultlw = (1300+lw.getCurrentPosition());
+                resultblw = (1300+blw.getCurrentPosition());
+                resultrw = (1300-rw.getCurrentPosition());
+                resultbrw = (1300-brw.getCurrentPosition());
+                if(resultlw < 200){
+                    powerlw = .2;
+                    lw.setPower(powerlw);
+                }else if (resultlw >= 200 || resultlw <= 1000){
+                    powerlw = ((3*resultlw)/4000);
+                    lw.setPower(powerlw);
+                }else if(resultlw >1000){
+                    powerlw = 1;
+                    lw.setPower(powerlw);
+                }
+
+
+                if(resultblw < 200){
+                    powerblw =.2;
+                    blw.setPower(powerblw);
+                }else if(resultblw >= 200 || resultblw <= 1000){
+                    powerblw = ((3*resultblw)/4000);
+                    blw.setPower(powerblw);
+                }else if(resultblw >1000){
+                    powerblw = 1;
+                    blw.setPower(powerblw);
+                }
+
+                if(resultrw < 200){
+                    powerrw = .2;
+                    rw.setPower(powerrw);
+                }else if(resultrw >= 200 || resultrw <= 1000){
+                    powerrw = ((3*resultrw)/4000);
+                    rw.setPower(powerrw);
+                }else if(resultrw >1000){
+                    powerrw = 1;
+                    rw.setPower(powerrw);
+                }
+
+                if(resultbrw <200){
+                    powerbrw = .2;
+                    brw.setPower(powerbrw);
+                }else if(resultbrw >= 200|| resultbrw >= 1000){
+                    powerbrw = ((3*resultbrw)/4000);
+                    brw.setPower(powerbrw);
+                }else if(resultbrw >1000){
+                    powerbrw = 1;
+                    brw.setPower(powerbrw);
+                }
+            }
+            if(direction < 0){
+                resultlw = (1300-lw.getCurrentPosition());
+                resultblw = (1300-blw.getCurrentPosition());
+                resultrw = (1300+rw.getCurrentPosition());
+                resultbrw = (1300+brw.getCurrentPosition());
+                if(resultlw < 200){
+                    powerlw = .2;
+                    lw.setPower(powerlw);
+                }else if (resultlw >= 200 || resultlw <= 1000){
+                    powerlw = ((3*resultlw)/4000);
+                    lw.setPower(powerlw);
+                }else if(resultlw >1000){
+                    powerlw = 1;
+                    lw.setPower(powerlw);
+                }
+
+
+                if(resultblw < 200){
+                    powerblw =.2;
+                    blw.setPower(powerblw);
+                }else if(resultblw >= 200 || resultblw <= 1000){
+                    powerblw = ((3*resultblw)/4000);
+                    blw.setPower(powerblw);
+                }else if(resultblw >1000){
+                    powerblw = 1;
+                    blw.setPower(powerblw);
+                }
+
+                if(resultrw < 200){
+                    powerrw = .2;
+                    rw.setPower(powerrw);
+                }else if(resultrw >= 200 || resultrw <= 1000){
+                    powerrw = ((3*resultrw)/4000);
+                    rw.setPower(powerrw);
+                }else if(resultrw >1000){
+                    powerrw = 1;
+                    rw.setPower(powerrw);
+                }
+
+                if(resultbrw <200){
+                    powerbrw = .2;
+                    brw.setPower(powerbrw);
+                }else if(resultbrw >= 200|| resultbrw >= 1000){
+                    powerbrw = ((3*resultbrw)/4000);
+                    brw.setPower(powerbrw);
+                }else if(resultbrw >1000){
+                    powerbrw = 1;
+                    brw.setPower(powerbrw);
+                }
+            }
+            telemetry.addData("LW Tics", lw.getCurrentPosition());
+            telemetry.addData("LW GOAL", -1300);
+            telemetry.addData("BLW Tics", blw.getCurrentPosition());
+            telemetry.addData("BLW GOAL", -1300);
+            telemetry.addData("RW Tics", rw.getCurrentPosition());
+            telemetry.addData("RW GOAL", 1300);
+            telemetry.addData("BRW Tics", brw.getCurrentPosition());
+            telemetry.addData("BRW GOAL", 1300);
+            telemetry.update();
+        }
+        stopDrive();
+    }
+
+    public void ringshootgoal()
+    {
+        double shootPower = .65;
+        shoot.setPower(shootPower);
+        sleep(3000);
+        for(int i = 0; i < 3; i++)
+        {
+            flick.setPosition(0.5);
+            shootPower += 0.1;
+            sleep(50);
+            flick.setPosition(1);
+            sleep(800);
+            shoot.setPower(shootPower);
+        }
+        shoot.setPower(0);
+    }
+    public void powershot()
+    {
+        flick.setPosition(0.5);
+        sleep(50);
+        flick.setPosition(1);
+        shoot.setPower(-.57);
+        rotate(100, 100);
+        sleep(600);
+        flick.setPosition(0.5);
+        sleep(50);
+        flick.setPosition(1);
+        rotate(115, 115);
+        sleep(600);
+        flick.setPosition(0.5);
+        sleep(50);
+        flick.setPosition(1);
+        sleep(800);
+        shoot.setPower(0);
+        rotate(-170, -170);
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+    public  int degreeCalc(int degree){
+        int returnDegree = degree;
+        if(degree < 0){
+            returnDegree += 360;
+        }
+        if(degree >= 360){
+            returnDegree -= 360;
+        }
+        return returnDegree;
+    }
+
+    //Drive stop
+    public void stopDrive(){
+        lw.setPower(0);
+        rw.setPower(0);
+        blw.setPower(0);
+        brw.setPower(0);
+    }
+
+    //public void wobUp(){ wob.setPosition(0); }
+
+    //public void wobDown(){ wob.setPosition(1); }
+
+    // Initilize
+    public void Init(){
+        lw = hardwareMap.dcMotor.get("lw");
+        lw.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        lw.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rw = hardwareMap.dcMotor.get("rw");
+        rw.setDirection(DcMotor.Direction.REVERSE);
+        rw.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rw.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        brw = hardwareMap.dcMotor.get("brw");
+        brw.setDirection(DcMotor.Direction.REVERSE);
+        brw.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        brw.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        blw = hardwareMap.dcMotor.get("blw");
+        blw.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        blw.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        in0 = hardwareMap.dcMotor.get("ina");
+        in1 = hardwareMap.dcMotor.get("inb");
+        in1.setDirection(DcMotor.Direction.REVERSE);
+        shoot = hardwareMap.dcMotor.get("shoot");
+        shoot.setDirection(DcMotor.Direction.REVERSE);
+        flick = hardwareMap.servo.get("flick");
+        flick.setPosition(1);
+        arm = hardwareMap.servo.get("arm");
+        fingers = hardwareMap.servo.get("fingers");
+        rotateserv = hardwareMap.servo.get("rotate");
+        gyro = hardwareMap.gyroSensor.get("gyro");
+        drop = hardwareMap.servo.get("drop");
+        drop.setPosition(0.1);
+        gyro.calibrate();
+        initVuforia();
+        initTfod();
+        fingers.setPosition(.94);
+        rotateserv.setPosition(0.2);
+
+
+        //opd = hardwareMap.opticalDistanceSensor.get("opd_sensor");
+        //opd.enableLed(true);
+    }
+
+    //Setting Power to the same thing for the motors
+    public void run(double power){
+        lw.setPower(power);
+        rw.setPower(power);
+        blw.setPower(power);
+        brw.setPower(power);
+    }
+
+    //Side to Side movement with power being same
+    public void siderun(double power){
+        lw.setPower(power);
+        rw.setPower(-power);
+        brw.setPower(power);
+        blw.setPower(-power);
+    }
+
+    //Forward/Backwards Movement
+    private void straight(double tics, int tic){
+        lw.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rw.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        blw.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        brw.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        lw.setTargetPosition(-tic);
+        blw.setTargetPosition(-tic);
+        rw.setTargetPosition(-tic);
+        brw.setTargetPosition(-tic);
+        lw.setMode(RUN_TO_POSITION);
+        rw.setMode(RUN_TO_POSITION);
+        blw.setMode(RUN_TO_POSITION);
+        brw.setMode(RUN_TO_POSITION);
+        while (lw.isBusy()||rw.isBusy()||brw.isBusy()||blw.isBusy()){
+            if(tics > 0){
+                resultlw = (tics+lw.getCurrentPosition());
+                resultblw = (tics+blw.getCurrentPosition());
+                resultrw = (tics+rw.getCurrentPosition());
+                resultbrw = (tics+brw.getCurrentPosition());
+                if(resultlw < 500){
+                    powerlw = .2;
+                    // gyroStraight();
+                    //lw.setPower(powerlw);
+                }else if (resultlw >= 500 || resultlw <= 1000){
+                    powerlw = ((3*resultlw)/4000);
+                    //gyroStraight();
+                    //lw.setPower(powerlw);
+                }else if(resultlw >1000){
+                    // Does this ever get activated? isn't the previous if statement always true because it is 'or' not 'and', so is greater than 500 or less than 1000 not always true? thus this 'else if' statement is never active.
+                    powerlw = 0.6;
+                    //gyroStraight();
+                    //lw.setPower(powerlw);
+                }
+
+
+                if(resultblw < 500){
+                    powerblw =.2;
+                    //gyroStraight();
+                    //blw.setPower(powerblw);
+                }else if(resultblw >= 500 || resultblw <= 1000){
+                    powerblw = ((3*resultblw)/4000);
+                    //gyroStraight();
+                    //blw.setPower(powerblw);
+                }else if(resultblw > 1000){
+                    powerblw = 0.6;
+                    //gyroStraight();
+                    //blw.setPower(powerblw);
+                }
+
+                if(resultrw < 500){
+                    powerrw = .2;
+                    //gyroStraight();
+                    //rw.setPower(powerrw);
+                }else if(resultrw >= 500 || resultrw <= 1000){
+                    powerrw = ((3*resultrw)/4000);
+                    //gyroStraight();
+                    //rw.setPower(powerrw);
+                }else if(resultrw >1000){
+                    powerrw = 0.6;
+                    //gyroStraight();
+                    //rw.setPower(powerrw);
+                }
+
+                if(resultbrw < 500){
+                    powerbrw = .2;
+                    //gyroStraight();
+                    //brw.setPower(powerbrw);
+                }else if(resultbrw >= 500|| resultbrw >= 1000){
+                    powerbrw = ((3*resultbrw)/4000);
+                    // gyroStraight();
+                    //brw.setPower(powerbrw);
+                }else if(resultbrw >1000){
+                    powerbrw = 0.6;
+                    //gyroStraight();
+                    //brw.setPower(powerbrw);
+                }
+                // gyroStraight();
+                rw.setPower(powerrw);
+                lw.setPower(powerlw);
+                brw.setPower(powerbrw);
+                blw.setPower(powerblw);
+            }
+            if(tics < 0){
+                resultlw = ((-tics)-lw.getCurrentPosition());
+                resultblw = ((-tics)-blw.getCurrentPosition());
+                resultrw = ((-tics)-rw.getCurrentPosition());
+                resultbrw = ((-tics)-brw.getCurrentPosition());
+                if(resultlw < 200){
+                    powerlw = .2;
+                    //gyroStraight();
+                    //lw.setPower(powerlw);
+                }else if (resultlw >= 200 || resultlw <= 1000){
+                    powerlw = ((3*resultlw)/4000);
+                    //gyroStraight();
+                    //lw.setPower(powerlw);
+                }else if(resultlw >1000){
+                    powerlw = 0.8;
+                    // gyroStraight();
+                    //lw.setPower(powerlw);
+                }
+
+
+                if(resultblw < 200){
+                    powerblw =.2;
+                    //gyroStraight();
+                    //blw.setPower(powerblw);
+                }else if(resultblw >= 200 || resultblw <= 1000){
+                    powerblw = ((3*resultblw)/4000);
+                    //gyroStraight();
+                    //blw.setPower(powerblw);
+                }else if(resultblw >1000){
+                    powerblw = 0.8;
+                    // gyroStraight();
+                    //blw.setPower(powerblw);
+                }
+
+                if(resultrw < 200){
+                    powerrw = .2;
+                    //gyroStraight();
+                    //rw.setPower(powerrw);
+                }else if(resultrw >= 200 || resultrw <= 1000){
+                    powerrw = ((3*resultrw)/4000);
+                    // gyroStraight();
+                    //rw.setPower(powerrw);
+                }else if(resultrw >1000){
+                    powerrw = 0.8;
+                    // gyroStraight();
+                    //rw.setPower(powerrw);
+                }
+
+                if(resultbrw <200){
+                    powerbrw = .2;
+                    //gyroStraight();
+                    //brw.setPower(powerbrw);
+                }else if(resultbrw >= 200|| resultbrw >= 1000){
+                    powerbrw = ((3*resultbrw)/4000);
+                    //gyroStraight();
+                    //brw.setPower(powerbrw);
+                }else if(resultbrw >1000){
+                    powerbrw = 0.8;
+                    //gyroStraight();
+                    //brw.setPower(powerbrw);
+                }
+                //gyroStraight();
+                rw.setPower(powerrw);
+                lw.setPower(powerlw);
+                brw.setPower(powerbrw);
+                blw.setPower(powerblw);
+            }
+
+
+            telemetry.addData("LW Tics", lw.getCurrentPosition());
+            telemetry.addData("LW GOAL", tics);
+            telemetry.addData("BLW Tics", blw.getCurrentPosition());
+            telemetry.addData("BLW GOAL", tics);
+            telemetry.addData("RW Tics", rw.getCurrentPosition());
+            telemetry.addData("RW GOAL", tics);
+            telemetry.addData("BRW Tics", brw.getCurrentPosition());
+            telemetry.addData("BRW GOAL", tics);
+            telemetry.update();
+        }
+        stopDrive();
+    }
+
+    //Strafing, + = right & - = left
+    private void side(double tics, int tic){
+        lw.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rw.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        blw.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        brw.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        lw.setTargetPosition(-tic);
+        blw.setTargetPosition(tic);
+        rw.setTargetPosition(tic);
+        brw.setTargetPosition(-tic);
+        lw.setMode(RUN_TO_POSITION);
+        rw.setMode(RUN_TO_POSITION);
+        blw.setMode(RUN_TO_POSITION);
+        brw.setMode(RUN_TO_POSITION);
+        while (lw.isBusy()||rw.isBusy()||brw.isBusy()||blw.isBusy())
+        {
+            if(tics > 0){
+                resultlw = (tics-lw.getCurrentPosition());
+                resultblw = (tics+blw.getCurrentPosition());
+                resultrw = (tics+rw.getCurrentPosition());
+                resultbrw = (tics-brw.getCurrentPosition());
+                if(resultlw < 200){
+                    powerlw = .2;
+                    lw.setPower(powerlw);
+                }else if (resultlw >= 200 || resultlw <= 1000){
+                    powerlw = ((3*resultlw)/4000);
+                    lw.setPower(powerlw);
+                }else if(resultlw >1000){
+                    powerlw = 1;
+                    lw.setPower(powerlw);
+                }
+
+
+                if(resultblw < 200){
+                    powerblw =.2;
+                    blw.setPower(powerblw);
+                }else if(resultblw >= 200 || resultblw <= 1000){
+                    powerblw = ((3*resultblw)/4000);
+                    blw.setPower(powerblw);
+                }else if(resultblw >1000){
+                    powerblw = 1;
+                    blw.setPower(powerblw);
+                }
+
+                if(resultrw < 200){
+                    powerrw = .2;
+                    rw.setPower(powerrw);
+                }else if(resultrw >= 200 || resultrw <= 1000){
+                    powerrw = ((3*resultrw)/4000);
+                    rw.setPower(powerrw);
+                }else if(resultrw >1000){
+                    powerrw = 1;
+                    rw.setPower(powerrw);
+                }
+
+                if(resultbrw <200){
+                    powerbrw = .2;
+                    brw.setPower(powerbrw);
+                }else if(resultbrw >= 200|| resultbrw >= 1000){
+                    powerbrw = ((3*resultbrw)/4000);
+                    brw.setPower(powerbrw);
+                }else if(resultbrw >1000){
+                    powerbrw = 1;
+                    brw.setPower(powerbrw);
+                }
+            }
+            if(tics < 0){
+                resultlw = ((-tics)+lw.getCurrentPosition());
+                resultblw = ((-tics)-blw.getCurrentPosition());
+                resultrw = ((-tics)-rw.getCurrentPosition());
+                resultbrw = ((-tics)+brw.getCurrentPosition());
+                if(resultlw < 200){
+                    powerlw = .2;
+                    lw.setPower(powerlw);
+                }else if (resultlw >= 200 || resultlw <= 1000){
+                    powerlw = ((3*resultlw)/4000);
+                    lw.setPower(powerlw);
+                }else if(resultlw >1000){
+                    powerlw = 1;
+                    lw.setPower(powerlw);
+                }
+
+
+                if(resultblw < 200){
+                    powerblw =.2;
+                    blw.setPower(powerblw);
+                }else if(resultblw >= 200 || resultblw <= 1000){
+                    powerblw = ((3*resultblw)/4000);
+                    blw.setPower(powerblw);
+                }else if(resultblw >1000){
+                    powerblw = 1;
+                    blw.setPower(powerblw);
+                }
+
+                if(resultrw < 200){
+                    powerrw = .2;
+                    rw.setPower(powerrw);
+                }else if(resultrw >= 200 || resultrw <= 1000){
+                    powerrw = ((3*resultrw)/4000);
+                    rw.setPower(powerrw);
+                }else if(resultrw >1000){
+                    powerrw = 1;
+                    rw.setPower(powerrw);
+                }
+
+                if(resultbrw <200){
+                    powerbrw = .2;
+                    brw.setPower(powerbrw);
+                }else if(resultbrw >= 200|| resultbrw >= 1000){
+                    powerbrw = ((3*resultbrw)/4000);
+                    brw.setPower(powerbrw);
+                }else if(resultbrw >1000){
+                    powerbrw = 1;
+                    brw.setPower(powerbrw);
+                }
+            }
+            telemetry.addData("LW Tics", lw.getCurrentPosition());
+            telemetry.addData("LW GOAL", tics);
+            telemetry.addData("BLW Tics", blw.getCurrentPosition());
+            telemetry.addData("BLW GOAL", tics);
+            telemetry.addData("RW Tics", rw.getCurrentPosition());
+            telemetry.addData("RW GOAL", tics);
+            telemetry.addData("BRW Tics", brw.getCurrentPosition());
+            telemetry.addData("BRW GOAL", tics);
+            telemetry.update();
+        }
+        stopDrive();
+    }
+
+    private void gyroStraight() {
+
+        // targetDegree is currently affected by the right stick and it changes the degrees the robot goes towards
+
+        targetDegree = degreeCalc(targetDegree);
+
+        if (degreeCalc(gyro.getHeading() - targetDegree) > windowSize + piecewiseWindow && degreeCalc(gyro.getHeading() - targetDegree) <= 180) {
+            if ((Math.pow(degreeCalc(gyro.getHeading() - targetDegree) * adjSpeed, 2)) >= minTurn) {
+                turnPower(-( Math.pow(degreeCalc(gyro.getHeading() - targetDegree) * adjSpeed, 2)));
+            }
+            else{
+                turnPower(-minTurn);
+            }
+        }
+
+        if (degreeCalc(gyro.getHeading() - targetDegree) < 360 - windowSize - piecewiseWindow && degreeCalc(gyro.getHeading() - targetDegree) > 180) {
+            if ((Math.pow((360 - degreeCalc(gyro.getHeading() - targetDegree)) * adjSpeed, 2) >= minTurn)) {
+                turnPower(Math.pow((360 - degreeCalc(gyro.getHeading() - targetDegree)) * adjSpeed, 2));
+            }
+            else {
+                turnPower(minTurn);
+            }
+        }
+        // Second graph function (piecewise) the one that is closer to 0 degrees
+        if (degreeCalc(gyro.getHeading() - targetDegree) > windowSize && degreeCalc(gyro.getHeading() - targetDegree) <= piecewiseWindow + windowSize) {
+            if ((Math.sqrt(degreeCalc(gyro.getHeading() - targetDegree) * piecewiseSpeed)) >= minTurn) {
+                turnPower(-(Math.sqrt(degreeCalc(gyro.getHeading() - targetDegree) * piecewiseSpeed)));
+            }
+            else {
+                turnPower(-minTurn);
+            }
+        }
+
+        if (degreeCalc(gyro.getHeading() - targetDegree) < 360 - windowSize && degreeCalc(gyro.getHeading() - targetDegree) > 360 - piecewiseWindow - windowSize) {
+            if (Math.sqrt((360 - degreeCalc(gyro.getHeading() - targetDegree)) * piecewiseSpeed) >= minTurn) {
+                turnPower(Math.sqrt((360 - degreeCalc(gyro.getHeading() - targetDegree)) * piecewiseSpeed) + piecewiseMinTurn);
+            }
+            else {
+                turnPower(minTurn);
+            }
+        }
+        telemetry.addData("Gyro Going", 0);
+
+    }
+
+    private void initVuforia() {
+        VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters();
+        parameters.vuforiaLicenseKey = "AdVdFHb/////AAABmTrtSk2IBEC3kcsmf+jj6dZ+IBrlySlXBxLBhVux/9ynN40mNtmmJDumGH5KSUa/5I071PAVDJDhAiPVL6Gql0qF/uZa3YfPawIo15gbxdZ2J9OXEyLMEcMC2k/YRxocV44f8m9C4nX+5FElzBQc42BvMaMyr2TeTj+hzMEghGi4HjMr4E6Fqs6/sHoHbKpcESuS3OttD0mjfS+7tuoEhxMTAwFW8IfAmNTf5kKErxOdVMQbLHqOsWHDn8jv/UY5KMGKiHbqpl45TQX3tYzHn4VpCU9dcJbYNJneOcB4TNt2/ZyY+qNkLqisPNM7WtlL9m37Hh9932STvDtVRNMCQdDEU0iuwFZc7UCDy+6sjxrO";
+        // parameters.cameraDirection = VuforiaLocalizer.CameraDirection.BACK;
+        parameters.camera = camera;
+        vuforia = ClassFactory.getInstance().createVuforia(parameters);
+        parameters.useExtendedTracking = false;
+    }
+    private void initTfod() {
+        int tfodMonitorViewId = hardwareMap.appContext.getResources().getIdentifier(
+                "tfodMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+        TFObjectDetector.Parameters tfodParameters = new TFObjectDetector.Parameters(tfodMonitorViewId);
+        tfodParameters.minResultConfidence = 0.75f;
+        tfod = ClassFactory.getInstance().createTFObjectDetector(tfodParameters, vuforia);
+        tfod.loadModelFromAsset(TFOD_MODEL_ASSET, LABEL_FIRST_ELEMENT, LABEL_SECOND_ELEMENT);
+    }
+    private void setUpRecognition(){
+        if(tfod != null){
+            tfod.activate();
+        }
+    }
+
+    public List<Recognition> findItems(){
+        int i = 0;
+        if (tfod != null) {
+            List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
+            if (updatedRecognitions != null) {
+                telemetry.addData("# Object Detected", updatedRecognitions.size());
+                for (Recognition recognition : updatedRecognitions) {
+                    telemetry.addData(String.format("label (%d)", i), recognition.getLabel());
+                    telemetry.addData(String.format("  left,top (%d)", i), "%.03f , %.03f",
+                            recognition.getLeft(), recognition.getTop());
+                    telemetry.addData(String.format("  right,bottom (%d)", i), "%.03f , %.03f",
+                            recognition.getRight(), recognition.getBottom());
+                }
+                if(updatedRecognitions.size() == 0) {
+                    return null;
+                }
+            }
+            telemetry.update();
+            return updatedRecognitions;
+        }
+        return null;
+    }
+
+    private void diagleft(double tics, int tic){
+        lw.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        brw.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        lw.setTargetPosition(-tic);
+        brw.setTargetPosition(-tic);
+        lw.setMode(RUN_TO_POSITION);
+        brw.setMode(RUN_TO_POSITION);
+        while (lw.isBusy()||brw.isBusy()){
+            if(tics > 0){
+                resultlw = (tics+lw.getCurrentPosition());
+                resultbrw = (tics+brw.getCurrentPosition());
+                if(resultlw < 300){
+                    powerlw = .3;
+                    // gyroStraight();
+                    //lw.setPower(powerlw);
+                }else if (resultlw >= 300 || resultlw <= 1000){
+                    powerlw = ((3*resultlw)/4000);
+                    //gyroStraight();
+                    //lw.setPower(powerlw);
+                }else if(resultlw >1000){
+                    powerlw = 0.8;
+                    //gyroStraight();
+                    //lw.setPower(powerlw);
+                }
+
+                if(resultbrw < 300){
+                    powerbrw = .3;
+                    //gyroStraight();
+                    //brw.setPower(powerbrw);
+                }else if(resultbrw >= 300|| resultbrw >= 1000){
+                    powerbrw = ((3*resultbrw)/4000);
+                    // gyroStraight();
+                    //brw.setPower(powerbrw);
+                }else if(resultbrw >1000){
+                    powerbrw = 0.8;
+                    //gyroStraight();
+                    //brw.setPower(powerbrw);
+                }
+                // gyroStraight();
+                lw.setPower(powerlw);
+                brw.setPower(powerbrw);
+            }
+            if(tics < 0){
+                resultlw = ((-tics)-lw.getCurrentPosition());
+                resultbrw = ((-tics)-brw.getCurrentPosition());
+                if(resultlw < 300){
+                    powerlw = .3;
+                    //gyroStraight();
+                    //lw.setPower(powerlw);
+                }else if (resultlw >= 300 || resultlw <= 1000){
+                    powerlw = ((3*resultlw)/4000);
+                    //gyroStraight();
+                    //lw.setPower(powerlw);
+                }else if(resultlw >1000){
+                    powerlw = 0.8;
+                    // gyroStraight();
+                    //lw.setPower(powerlw);
+                }
+
+                if(resultbrw <300){
+                    powerbrw = .3;
+                    //gyroStraight();
+                    //brw.setPower(powerbrw);
+                }else if(resultbrw >= 300|| resultbrw >= 1000){
+                    powerbrw = ((3*resultbrw)/4000);
+                    //gyroStraight();
+                    //brw.setPower(powerbrw);
+                }else if(resultbrw >1000){
+                    powerbrw = 0.8;
+                    //gyroStraight();
+                    //brw.setPower(powerbrw);
+                }
+                //gyroStraight();
+                lw.setPower(powerlw);
+                brw.setPower(powerbrw);
+            }
+
+
+            telemetry.addData("LW Tics", lw.getCurrentPosition());
+            telemetry.addData("LW GOAL", tics);
+            telemetry.addData("BLW Tics", blw.getCurrentPosition());
+            telemetry.addData("BLW GOAL", tics);
+            telemetry.addData("RW Tics", rw.getCurrentPosition());
+            telemetry.addData("RW GOAL", tics);
+            telemetry.addData("BRW Tics", brw.getCurrentPosition());
+            telemetry.addData("BRW GOAL", tics);
+            telemetry.update();
+        }
+        stopDrive();
+    }
+    private void diagright(double tics, int tic){
+        rw.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        blw.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rw.setTargetPosition(-tic);
+        blw.setTargetPosition(-tic);
+        rw.setMode(RUN_TO_POSITION);
+        blw.setMode(RUN_TO_POSITION);
+        while (rw.isBusy()|| blw.isBusy()){
+            if(tics > 0){
+                resultrw = (tics+rw.getCurrentPosition());
+                resultblw = (tics+blw.getCurrentPosition());
+                if(resultrw < 300){
+                    powerrw = .3;
+                    // gyroStraight();
+                    //lw.setPower(powerlw);
+                }else if (resultrw >= 300 || resultrw <= 1000){
+                    powerrw = ((3*resultrw)/4000);
+                    //gyroStraight();
+                    //lw.setPower(powerlw);
+                }else if(resultrw >1000){
+                    powerrw = 0.8;
+                    //gyroStraight();
+                    //lw.setPower(powerlw);
+                }
+
+                if(resultblw < 300){
+                    powerblw = .3;
+                    //gyroStraight();
+                    //brw.setPower(powerbrw);
+                }else if(resultblw >= 300|| resultblw >= 1000){
+                    powerblw = ((3*resultblw)/4000);
+                    // gyroStraight();
+                    //brw.setPower(powerbrw);
+                }else if(resultblw >1000){
+                    powerblw = 0.8;
+                    //gyroStraight();
+                    //brw.setPower(powerbrw);
+                }
+                // gyroStraight();
+                rw.setPower(powerrw);
+                blw.setPower(powerblw);
+            }
+            if(tics < 0){
+                resultrw = ((-tics)-rw.getCurrentPosition());
+                resultblw = ((-tics)-blw.getCurrentPosition());
+                if(resultrw < 300){
+                    powerrw = .3;
+                    //gyroStraight();
+                    //lw.setPower(powerlw);
+                }else if (resultrw >= 300 || resultrw <= 1000){
+                    powerrw = ((3*resultrw)/4000);
+                    //gyroStraight();
+                    //lw.setPower(powerlw);
+                }else if(resultrw >1000){
+                    powerrw = 0.8;
+                    // gyroStraight();
+                    //lw.setPower(powerlw);
+                }
+
+                if(resultblw <300){
+                    powerblw = .3;
+                    //gyroStraight();
+                    //brw.setPower(powerbrw);
+                }else if(resultblw >= 300|| resultblw >= 1000){
+                    powerblw = ((3*resultblw)/4000);
+                    //gyroStraight();
+                    //brw.setPower(powerbrw);
+                }else if(resultblw >1000){
+                    powerblw = 0.8;
+                    //gyroStraight();
+                    //brw.setPower(powerbrw);
+                }
+                //gyroStraight();
+                rw.setPower(powerrw);
+                blw.setPower(powerblw);
+            }
+
+
+            telemetry.addData("LW Tics", lw.getCurrentPosition());
+            telemetry.addData("LW GOAL", tics);
+            telemetry.addData("BLW Tics", blw.getCurrentPosition());
+            telemetry.addData("BLW GOAL", tics);
+            telemetry.addData("RW Tics", rw.getCurrentPosition());
+            telemetry.addData("RW GOAL", tics);
+            telemetry.addData("BRW Tics", brw.getCurrentPosition());
+            telemetry.addData("BRW GOAL", tics);
+            telemetry.update();
+        }
+        stopDrive();
+    }
+}
