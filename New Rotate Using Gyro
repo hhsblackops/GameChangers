@@ -1,0 +1,63 @@
+public void newrotate(int degreeTurn) {
+        targetDegree += degreeTurn;
+        targetDegree = degreeCalc(targetDegree);
+        while(degreeCalc(gyro.getHeading() - targetDegree) > windowSize && degreeCalc(gyro.getHeading() - targetDegree) < 360 - windowSize){
+            gyroStraight();
+        }
+}
+
+
+private void gyroStraight() {
+
+        // targetDegree is currently affected by the right stick and it changes the degrees the robot goes towards
+
+        targetDegree = degreeCalc(targetDegree);
+
+        if (degreeCalc(gyro.getHeading() - targetDegree) > windowSize + piecewiseWindow && degreeCalc(gyro.getHeading() - targetDegree) <= 180) {
+            if ((Math.pow(degreeCalc(gyro.getHeading() - targetDegree) * adjSpeed, 2)) >= minTurn) {
+                turnPower(-( Math.pow(degreeCalc(gyro.getHeading() - targetDegree) * adjSpeed, 2)));
+            }
+            else{
+                turnPower(-minTurn);
+            }
+        }
+
+        if (degreeCalc(gyro.getHeading() - targetDegree) < 360 - windowSize - piecewiseWindow && degreeCalc(gyro.getHeading() - targetDegree) > 180) {
+            if ((Math.pow((360 - degreeCalc(gyro.getHeading() - targetDegree)) * adjSpeed, 2) >= minTurn)) {
+                turnPower(Math.pow((360 - degreeCalc(gyro.getHeading() - targetDegree)) * adjSpeed, 2));
+            }
+            else {
+                turnPower(minTurn);
+            }
+        }
+        // Second graph function (piecewise) the one that is closer to 0 degrees
+        if (degreeCalc(gyro.getHeading() - targetDegree) > windowSize && degreeCalc(gyro.getHeading() - targetDegree) <= piecewiseWindow + windowSize) {
+            if ((Math.sqrt(degreeCalc(gyro.getHeading() - targetDegree) * piecewiseSpeed)) >= minTurn) {
+                turnPower(-(Math.sqrt(degreeCalc(gyro.getHeading() - targetDegree) * piecewiseSpeed)));
+            }
+            else {
+                turnPower(-minTurn);
+            }
+        }
+
+        if (degreeCalc(gyro.getHeading() - targetDegree) < 360 - windowSize && degreeCalc(gyro.getHeading() - targetDegree) > 360 - piecewiseWindow - windowSize) {
+            if (Math.sqrt((360 - degreeCalc(gyro.getHeading() - targetDegree)) * piecewiseSpeed) >= minTurn) {
+                turnPower(Math.sqrt((360 - degreeCalc(gyro.getHeading() - targetDegree)) * piecewiseSpeed) + piecewiseMinTurn);
+            }
+            else {
+                turnPower(minTurn);
+            }
+        }
+        telemetry.addData("Gyro Going", 0);
+
+    }
+    
+    
+     public void turnPower(double amount){
+        // use a positive parameter to turn right (clockwise)
+        // use a negative parameter to turn left (counterclockwise)
+        powerlw += amount;
+        powerrw -= amount;
+        powerblw += amount;
+        powerbrw -= amount;
+    }
